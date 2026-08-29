@@ -1,4 +1,4 @@
-import { index, pgTable, primaryKey, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { index, integer, pgTable, primaryKey, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
 export const studioProfile = pgTable('studio_profile', {
   id: uuid('id').primaryKey(),
@@ -50,3 +50,55 @@ export const studioProfilePermission = pgTable('studio_profile_permission', {
   primaryKey({ columns: [table.profileId, table.permissionId] }),
   index('studio_profile_permission_permission_id_idx').on(table.permissionId),
 ]);
+
+export const taxonomySubject = pgTable('taxonomy_subject', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  code: text('code').notNull().unique(),
+  name: text('name').notNull(),
+  status: text('status').notNull().default('active'),
+  sortOrder: integer('sort_order').notNull().default(0),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (table) => [index('taxonomy_subject_status_sort_idx').on(table.status, table.sortOrder)]);
+
+export const taxonomyChapter = pgTable('taxonomy_chapter', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  subjectId: uuid('subject_id').notNull().references(() => taxonomySubject.id, { onDelete: 'restrict' }),
+  code: text('code').notNull().unique(),
+  name: text('name').notNull(),
+  status: text('status').notNull().default('active'),
+  sortOrder: integer('sort_order').notNull().default(0),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (table) => [index('taxonomy_chapter_subject_status_sort_idx').on(table.subjectId, table.status, table.sortOrder)]);
+
+export const taxonomyTopic = pgTable('taxonomy_topic', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  chapterId: uuid('chapter_id').notNull().references(() => taxonomyChapter.id, { onDelete: 'restrict' }),
+  code: text('code').notNull().unique(),
+  name: text('name').notNull(),
+  status: text('status').notNull().default('active'),
+  sortOrder: integer('sort_order').notNull().default(0),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (table) => [index('taxonomy_topic_chapter_status_sort_idx').on(table.chapterId, table.status, table.sortOrder)]);
+
+export const taxonomyDifficulty = pgTable('taxonomy_difficulty', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  code: text('code').notNull().unique(),
+  name: text('name').notNull(),
+  status: text('status').notNull().default('active'),
+  sortOrder: integer('sort_order').notNull().default(0),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (table) => [index('taxonomy_difficulty_status_sort_idx').on(table.status, table.sortOrder)]);
+
+export const taxonomyQuestionType = pgTable('taxonomy_question_type', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  code: text('code').notNull().unique(),
+  name: text('name').notNull(),
+  status: text('status').notNull().default('active'),
+  sortOrder: integer('sort_order').notNull().default(0),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (table) => [index('taxonomy_question_type_status_sort_idx').on(table.status, table.sortOrder)]);
