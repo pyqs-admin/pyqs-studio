@@ -143,6 +143,23 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "Question Authoring",
+      "item": [
+        {
+          "name": "Create Question",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{studioAccessToken}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"stem\": \"Which statement is correct?\",\n  \"correctOption\": \"A\",\n  \"chapterId\": \"{{chapterId}}\",\n  \"topicId\": \"{{topicId}}\",\n  \"difficultyId\": \"{{difficultyId}}\",\n  \"questionTypeIds\": [\"{{questionTypeId}}\"],\n  \"options\": [{\"label\":\"A\",\"content\":\"Option A\"},{\"label\":\"B\",\"content\":\"Option B\"},{\"label\":\"C\",\"content\":\"Option C\"},{\"label\":\"D\",\"content\":\"Option D\"}]\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/questions/projects/{{projectId}}/subjects/{{subjectId}}/questions", "host": ["{{baseUrl}}"], "path": ["api", "v1", "questions", "projects", "{{projectId}}", "subjects", "{{subjectId}}", "questions"] }
+          }, "response": []
+        },
+        { "name": "Get Question", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{studioAccessToken}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/api/v1/questions/{{questionId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1", "questions", "{{questionId}}"] } }, "response": [] },
+        { "name": "Create Question Revision", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{studioAccessToken}}", "type": "string" }] }, "method": "POST", "url": { "raw": "{{baseUrl}}/api/v1/questions/{{questionId}}/revisions", "host": ["{{baseUrl}}"], "path": ["api", "v1", "questions", "{{questionId}}", "revisions"] } }, "response": [] }
+      ]
     }
   ]
 }
