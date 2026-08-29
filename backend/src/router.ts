@@ -4,8 +4,11 @@ import { env } from './config/env.js';
 import { checkDbConnection } from './database/client.js';
 import { asyncHandler } from './lib/async-handler.js';
 import { sendSuccess } from './lib/api-response.js';
+import { authRouter } from './modules/auth/auth.routes.js';
 
 export const apiRouter: ExpressRouter = Router();
+
+apiRouter.use('/auth', authRouter);
 
 apiRouter.get('/health', asyncHandler(async (_req, res) => {
   await checkDbConnection();
