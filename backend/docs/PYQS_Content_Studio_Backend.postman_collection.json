@@ -77,6 +77,41 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "Taxonomy",
+      "item": [
+        {
+          "name": "Get Full Taxonomy",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{studioAccessToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/taxonomy", "host": ["{{baseUrl}}"], "path": ["api", "v1", "taxonomy"] }
+          },
+          "response": []
+        },
+        {
+          "name": "List Subjects",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{studioAccessToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/taxonomy/subjects", "host": ["{{baseUrl}}"], "path": ["api", "v1", "taxonomy", "subjects"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Subject",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{studioAccessToken}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"code\": \"pathology\",\n  \"name\": \"Pathology\",\n  \"sortOrder\": 1\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/taxonomy/subjects", "host": ["{{baseUrl}}"], "path": ["api", "v1", "taxonomy", "subjects"] },
+            "description": "Requires the taxonomy.manage permission."
+          },
+          "response": []
+        }
+      ]
     }
   ]
 }
