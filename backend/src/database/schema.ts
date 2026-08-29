@@ -150,13 +150,15 @@ export const studioProjectMember = pgTable('studio_project_member', {
 export const studioQuestion = pgTable('studio_question', {
   id: uuid('id').defaultRandom().primaryKey(), publicQid: text('public_qid').notNull().unique(),
   projectId: uuid('project_id').notNull().references(() => studioProject.id, { onDelete: 'restrict' }),
-  status: text('status').notNull().default('draft'), createdBy: uuid('created_by').notNull().references(() => studioProfile.id, { onDelete: 'restrict' }),
+  status: text('status').notNull().default('DRAFT'),
+  publishedRevisionId: uuid('published_revision_id'),
+  createdBy: uuid('created_by').notNull().references(() => studioProfile.id, { onDelete: 'restrict' }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(), updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 }, (table) => [index('studio_question_project_status_idx').on(table.projectId, table.status)]);
 
 export const studioQuestionRevision = pgTable('studio_question_revision', {
   id: uuid('id').defaultRandom().primaryKey(), questionId: uuid('question_id').notNull().references(() => studioQuestion.id, { onDelete: 'cascade' }),
-  revisionNumber: integer('revision_number').notNull(), stem: text('stem').notNull(), correctOption: text('correct_option').notNull(),
+  revisionNumber: integer('revision_number').notNull(), status: text('status').notNull().default('DRAFT'), stem: text('stem').notNull(), correctOption: text('correct_option').notNull(),
   subjectId: uuid('subject_id').notNull().references(() => taxonomySubject.id, { onDelete: 'restrict' }),
   chapterId: uuid('chapter_id').notNull().references(() => taxonomyChapter.id, { onDelete: 'restrict' }),
   topicId: uuid('topic_id').notNull().references(() => taxonomyTopic.id, { onDelete: 'restrict' }),
@@ -187,3 +189,16 @@ export const studioAuditLog = pgTable('studio_audit_log', {
   actorProfileId: uuid('actor_profile_id').notNull().references(() => studioProfile.id, { onDelete: 'restrict' }), action: text('action').notNull(), metadata: jsonb('metadata').notNull().default({}),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [index('studio_audit_log_question_created_idx').on(table.questionId, table.createdAt)]);
+
+export const studioMediaAsset = pgTable('studio_media_asset', {
+  id: uuid('id').defaultRandom().primaryKey(), storagePath: text('storage_path').notNull().unique(), fileName: text('file_name').notNull(), mimeType: text('mime_type').notNull(), byteSize: integer('byte_size'),
+  sourceUrl: text('source_url'), creator: text('creator'), license: text('license').notNull().default('unverified'), attribution: text('attribution'), caption: text('caption'), altText: text('alt_text'),
+  annotated: text('annotated').notNull().default('no'), verificationStatus: text('verification_status').notNull().default('unverified'), uploadedBy: uuid('uploaded_by').notNull().references(() => studioProfile.id, { onDelete: 'restrict' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(), updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (table) => [index('studio_media_asset_verification_idx').on(table.verificationStatus)]);
+
+export const studioExplanationBlock = pgTable('studio_explanation_block', {
+  id: uuid('id').defaultRandom().primaryKey(), revisionId: uuid('revision_id').notNull().references(() => studioQuestionRevision.id, { onDelete: 'cascade' }),
+  blockType: text('block_type').notNull(), content: jsonb('content').notNull(), position: integer('position').notNull(), createdBy: uuid('created_by').notNull().references(() => studioProfile.id, { onDelete: 'restrict' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(), updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (table) => [index('studio_explanation_block_revision_position_idx').on(table.revisionId, table.position)]);

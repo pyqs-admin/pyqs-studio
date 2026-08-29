@@ -1,0 +1,4 @@
+import type { Request, Response } from 'express';
+import { sendSuccess } from '../../lib/api-response.js'; import type { StudioSession } from '../auth/auth.types.js';
+import { replaceBlocksSchema, revisionParamsSchema } from './explanations.schemas.js'; import { explanationsService } from './explanations.service.js';
+export const explanationsController = { async list(req: Request, res: Response) { const p = revisionParamsSchema.parse(req.params); sendSuccess(res, await explanationsService.list(p.questionId, p.revisionId, res.locals.studioSession as StudioSession)); }, async replace(req: Request, res: Response) { const p = revisionParamsSchema.parse(req.params); sendSuccess(res, await explanationsService.replace(p.questionId, p.revisionId, replaceBlocksSchema.parse(req.body), res.locals.studioSession as StudioSession)); } };
