@@ -10,6 +10,7 @@ export class TaxonomyController {
   async listChapters(req: Request, res: Response) { sendSuccess(res, await taxonomyService.getTaxonomy().then((data) => data.chapters.filter((item) => item.subjectId === req.params.subjectId))); }
   async listTopics(req: Request, res: Response) { sendSuccess(res, await taxonomyService.getTaxonomy().then((data) => data.topics.filter((item) => item.chapterId === req.params.chapterId))); }
   async listDifficulties(_req: Request, res: Response) { sendSuccess(res, await taxonomyService.getTaxonomy().then((data) => data.difficulties)); }
+  async listExams(_req: Request, res: Response) { sendSuccess(res, await taxonomyService.getTaxonomy().then((data) => data.exams)); }
   async listQuestionTypes(_req: Request, res: Response) { sendSuccess(res, await taxonomyService.getTaxonomy().then((data) => data.questionTypes)); }
   async createSubject(req: Request, res: Response) { sendSuccess(res, await taxonomyService.createSubject(createSubjectSchema.parse(req.body)), 201); }
   async updateSubject(req: Request, res: Response) { sendSuccess(res, await taxonomyService.updateSubject(idParamsSchema.parse(req.params).id, updateSubjectSchema.parse(req.body))); }
@@ -19,6 +20,8 @@ export class TaxonomyController {
   async updateTopic(req: Request, res: Response) { sendSuccess(res, await taxonomyService.updateTopic(idParamsSchema.parse(req.params).id, updateTopicSchema.parse(req.body))); }
   async createDifficulty(req: Request, res: Response) { sendSuccess(res, await taxonomyService.createDifficulty(createSimpleSchema.parse(req.body)), 201); }
   async updateDifficulty(req: Request, res: Response) { sendSuccess(res, await taxonomyService.updateDifficulty(idParamsSchema.parse(req.params).id, updateSimpleSchema.parse(req.body))); }
+  async createExam(req: Request, res: Response) { sendSuccess(res, await taxonomyService.createExam(createSimpleSchema.parse(req.body)), 201); }
+  async updateExam(req: Request, res: Response) { sendSuccess(res, await taxonomyService.updateExam(idParamsSchema.parse(req.params).id, updateSimpleSchema.parse(req.body))); }
   async createQuestionType(req: Request, res: Response) { sendSuccess(res, await taxonomyService.createQuestionType(createSimpleSchema.parse(req.body)), 201); }
   async updateQuestionType(req: Request, res: Response) { sendSuccess(res, await taxonomyService.updateQuestionType(idParamsSchema.parse(req.params).id, updateSimpleSchema.parse(req.body))); }
 }

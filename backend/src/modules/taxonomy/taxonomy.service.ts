@@ -4,10 +4,10 @@ import type { CreateChapter, CreateSimple, CreateSubject, CreateTopic, UpdateCha
 
 export class TaxonomyService {
   async getTaxonomy() {
-    const [subjects, chapters, topics, difficulties, questionTypes] = await Promise.all([
-      taxonomyRepository.listSubjects(), taxonomyRepository.listChapters(), taxonomyRepository.listTopics(), taxonomyRepository.listDifficulties(), taxonomyRepository.listQuestionTypes(),
+    const [subjects, chapters, topics, difficulties, questionTypes, exams] = await Promise.all([
+      taxonomyRepository.listSubjects(), taxonomyRepository.listChapters(), taxonomyRepository.listTopics(), taxonomyRepository.listDifficulties(), taxonomyRepository.listQuestionTypes(), taxonomyRepository.listExams(),
     ]);
-    return { subjects, chapters, topics, difficulties, questionTypes };
+    return { subjects, chapters, topics, difficulties, questionTypes, exams };
   }
   async createSubject(input: CreateSubject) { return taxonomyRepository.createSubject(input); }
   async updateSubject(id: string, input: UpdateSubject) { return this.requireItem(await taxonomyRepository.updateSubject(id, input), 'Subject'); }
@@ -17,6 +17,8 @@ export class TaxonomyService {
   async updateTopic(id: string, input: UpdateTopic) { if (input.chapterId) await this.requireActiveChapter(input.chapterId); return this.requireItem(await taxonomyRepository.updateTopic(id, input), 'Topic'); }
   async createDifficulty(input: CreateSimple) { return taxonomyRepository.createDifficulty(input); }
   async updateDifficulty(id: string, input: UpdateSimple) { return this.requireItem(await taxonomyRepository.updateDifficulty(id, input), 'Difficulty'); }
+  async createExam(input: CreateSimple) { return taxonomyRepository.createExam(input); }
+  async updateExam(id: string, input: UpdateSimple) { return this.requireItem(await taxonomyRepository.updateExam(id, input), 'Exam'); }
   async createQuestionType(input: CreateSimple) { return taxonomyRepository.createQuestionType(input); }
   async updateQuestionType(id: string, input: UpdateSimple) { return this.requireItem(await taxonomyRepository.updateQuestionType(id, input), 'Question type'); }
   private async requireActiveSubject(id: string): Promise<void> { const item = await taxonomyRepository.findSubject(id); if (!item || item.status !== 'active') throw new AppError({ statusCode: 400, code: 'INVALID_SUBJECT', message: 'An active subject is required.' }); }

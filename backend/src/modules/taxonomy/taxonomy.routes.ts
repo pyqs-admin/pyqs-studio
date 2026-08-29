@@ -13,6 +13,7 @@ taxonomyRouter.get('/subjects', asyncHandler((req, res) => taxonomyController.li
 taxonomyRouter.get('/subjects/:subjectId/chapters', validateRequest({ params: subjectParamsSchema }), asyncHandler((req, res) => taxonomyController.listChapters(req, res)));
 taxonomyRouter.get('/chapters/:chapterId/topics', validateRequest({ params: chapterParamsSchema }), asyncHandler((req, res) => taxonomyController.listTopics(req, res)));
 taxonomyRouter.get('/difficulties', asyncHandler((req, res) => taxonomyController.listDifficulties(req, res)));
+taxonomyRouter.get('/exams', asyncHandler((req, res) => taxonomyController.listExams(req, res)));
 taxonomyRouter.get('/question-types', asyncHandler((req, res) => taxonomyController.listQuestionTypes(req, res)));
 taxonomyRouter.use(requireStudioPermission('taxonomy.manage'));
 taxonomyRouter.post('/subjects', validateRequest({ body: createSubjectSchema }), asyncHandler((req, res) => taxonomyController.createSubject(req, res)));
@@ -23,5 +24,7 @@ taxonomyRouter.post('/topics', validateRequest({ body: createTopicSchema }), asy
 taxonomyRouter.patch('/topics/:id', validateRequest({ params: idParamsSchema, body: updateTopicSchema }), asyncHandler((req, res) => taxonomyController.updateTopic(req, res)));
 taxonomyRouter.post('/difficulties', validateRequest({ body: createSimpleSchema }), asyncHandler((req, res) => taxonomyController.createDifficulty(req, res)));
 taxonomyRouter.patch('/difficulties/:id', validateRequest({ params: idParamsSchema, body: updateSimpleSchema }), asyncHandler((req, res) => taxonomyController.updateDifficulty(req, res)));
+taxonomyRouter.post('/exams', validateRequest({ body: createSimpleSchema }), asyncHandler((req, res) => taxonomyController.createExam(req, res)));
+taxonomyRouter.patch('/exams/:id', validateRequest({ params: idParamsSchema, body: updateSimpleSchema }), asyncHandler((req, res) => taxonomyController.updateExam(req, res)));
 taxonomyRouter.post('/question-types', validateRequest({ body: createSimpleSchema }), asyncHandler((req, res) => taxonomyController.createQuestionType(req, res)));
 taxonomyRouter.patch('/question-types/:id', validateRequest({ params: idParamsSchema, body: updateSimpleSchema }), asyncHandler((req, res) => taxonomyController.updateQuestionType(req, res)));

@@ -6,11 +6,13 @@ import { asyncHandler } from './lib/async-handler.js';
 import { sendSuccess } from './lib/api-response.js';
 import { authRouter } from './modules/auth/auth.routes.js';
 import { taxonomyRouter } from './modules/taxonomy/taxonomy.routes.js';
+import { projectsRouter } from './modules/projects/projects.routes.js';
 
 export const apiRouter: ExpressRouter = Router();
 
 apiRouter.use('/auth', authRouter);
 apiRouter.use('/taxonomy', taxonomyRouter);
+apiRouter.use('/projects', projectsRouter);
 
 apiRouter.get('/health', asyncHandler(async (_req, res) => {
   await checkDbConnection();
