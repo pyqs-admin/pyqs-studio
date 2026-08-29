@@ -1,4 +1,4 @@
-import { index, integer, pgTable, primaryKey, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { index, integer, jsonb, pgTable, primaryKey, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
 export const studioProfile = pgTable('studio_profile', {
   id: uuid('id').primaryKey(),
@@ -146,3 +146,44 @@ export const studioProjectMember = pgTable('studio_project_member', {
   index('studio_project_member_project_status_idx').on(table.projectId, table.status),
   index('studio_project_member_profile_status_idx').on(table.profileId, table.status),
 ]);
+
+export const studioQuestion = pgTable('studio_question', {
+  id: uuid('id').defaultRandom().primaryKey(), publicQid: text('public_qid').notNull().unique(),
+  projectId: uuid('project_id').notNull().references(() => studioProject.id, { onDelete: 'restrict' }),
+  status: text('status').notNull().default('draft'), createdBy: uuid('created_by').notNull().references(() => studioProfile.id, { onDelete: 'restrict' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(), updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (table) => [index('studio_question_project_status_idx').on(table.projectId, table.status)]);
+
+export const studioQuestionRevision = pgTable('studio_question_revision', {
+  id: uuid('id').defaultRandom().primaryKey(), questionId: uuid('question_id').notNull().references(() => studioQuestion.id, { onDelete: 'cascade' }),
+  revisionNumber: integer('revision_number').notNull(), stem: text('stem').notNull(), correctOption: text('correct_option').notNull(),
+  subjectId: uuid('subject_id').notNull().references(() => taxonomySubject.id, { onDelete: 'restrict' }),
+  chapterId: uuid('chapter_id').notNull().references(() => taxonomyChapter.id, { onDelete: 'restrict' }),
+  topicId: uuid('topic_id').notNull().references(() => taxonomyTopic.id, { onDelete: 'restrict' }),
+  difficultyId: uuid('difficulty_id').notNull().references(() => taxonomyDifficulty.id, { onDelete: 'restrict' }),
+  createdBy: uuid('created_by').notNull().references(() => studioProfile.id, { onDelete: 'restrict' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(), updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (table) => [index('studio_question_revision_question_idx').on(table.questionId, table.revisionNumber)]);
+
+export const studioQuestionOption = pgTable('studio_question_option', {
+  id: uuid('id').defaultRandom().primaryKey(), revisionId: uuid('revision_id').notNull().references(() => studioQuestionRevision.id, { onDelete: 'cascade' }),
+  label: text('label').notNull(), content: text('content').notNull(), position: integer('position').notNull(),
+}, (table) => [index('studio_question_option_revision_idx').on(table.revisionId, table.position)]);
+
+export const studioQuestionRevisionType = pgTable('studio_question_revision_type', {
+  revisionId: uuid('revision_id').notNull().references(() => studioQuestionRevision.id, { onDelete: 'cascade' }),
+  questionTypeId: uuid('question_type_id').notNull().references(() => taxonomyQuestionType.id, { onDelete: 'restrict' }),
+}, (table) => [primaryKey({ columns: [table.revisionId, table.questionTypeId] })]);
+
+export const studioQuestionContributor = pgTable('studio_question_contributor', {
+  id: uuid('id').defaultRandom().primaryKey(), questionId: uuid('question_id').notNull().references(() => studioQuestion.id, { onDelete: 'cascade' }),
+  profileId: uuid('profile_id').notNull().references(() => studioProfile.id, { onDelete: 'restrict' }), contributionType: text('contribution_type').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const studioAuditLog = pgTable('studio_audit_log', {
+  id: uuid('id').defaultRandom().primaryKey(), projectId: uuid('project_id').references(() => studioProject.id, { onDelete: 'restrict' }),
+  questionId: uuid('question_id').references(() => studioQuestion.id, { onDelete: 'cascade' }), revisionId: uuid('revision_id').references(() => studioQuestionRevision.id, { onDelete: 'cascade' }),
+  actorProfileId: uuid('actor_profile_id').notNull().references(() => studioProfile.id, { onDelete: 'restrict' }), action: text('action').notNull(), metadata: jsonb('metadata').notNull().default({}),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [index('studio_audit_log_question_created_idx').on(table.questionId, table.createdAt)]);

@@ -1,0 +1,12 @@
+import { Router, type Router as ExpressRouter } from 'express';
+import { asyncHandler } from '../../lib/async-handler.js';
+import { requireStudioAuth } from '../../middleware/require-studio-auth.middleware.js';
+import { validateRequest } from '../../middleware/validate.middleware.js';
+import { questionsController } from './questions.controller.js';
+import { createQuestionSchema, projectSubjectParamsSchema, questionIdParamsSchema, revisionParamsSchema, updateDraftSchema } from './questions.schemas.js';
+export const questionsRouter: ExpressRouter = Router();
+questionsRouter.use(requireStudioAuth);
+questionsRouter.post('/projects/:projectId/subjects/:subjectId/questions', validateRequest({ params: projectSubjectParamsSchema, body: createQuestionSchema }), asyncHandler((req, res) => questionsController.create(req, res)));
+questionsRouter.get('/:questionId', validateRequest({ params: questionIdParamsSchema }), asyncHandler((req, res) => questionsController.get(req, res)));
+questionsRouter.post('/:questionId/revisions', validateRequest({ params: questionIdParamsSchema }), asyncHandler((req, res) => questionsController.createRevision(req, res)));
+questionsRouter.patch('/:questionId/revisions/:revisionId/draft', validateRequest({ params: revisionParamsSchema, body: updateDraftSchema }), asyncHandler((req, res) => questionsController.saveDraft(req, res)));
