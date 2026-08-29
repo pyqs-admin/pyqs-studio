@@ -15,6 +15,11 @@
       "key": "studioAccessToken",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "examId",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -108,6 +113,32 @@
             "body": { "mode": "raw", "raw": "{\n  \"code\": \"pathology\",\n  \"name\": \"Pathology\",\n  \"sortOrder\": 1\n}" },
             "url": { "raw": "{{baseUrl}}/api/v1/taxonomy/subjects", "host": ["{{baseUrl}}"], "path": ["api", "v1", "taxonomy", "subjects"] },
             "description": "Requires the taxonomy.manage permission."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Projects",
+      "item": [
+        {
+          "name": "List Accessible Projects",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{studioAccessToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/projects", "host": ["{{baseUrl}}"], "path": ["api", "v1", "projects"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Project",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{studioAccessToken}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"INI-CET November 2026\",\n  \"examId\": \"{{examId}}\",\n  \"year\": 2026,\n  \"session\": \"November\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/projects", "host": ["{{baseUrl}}"], "path": ["api", "v1", "projects"] },
+            "description": "Requires project.create. The creator is automatically added as Project Owner."
           },
           "response": []
         }
