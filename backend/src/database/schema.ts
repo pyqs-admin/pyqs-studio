@@ -158,7 +158,7 @@ export const studioQuestion = pgTable('studio_question', {
 
 export const studioQuestionRevision = pgTable('studio_question_revision', {
   id: uuid('id').defaultRandom().primaryKey(), questionId: uuid('question_id').notNull().references(() => studioQuestion.id, { onDelete: 'cascade' }),
-  revisionNumber: integer('revision_number').notNull(), status: text('status').notNull().default('DRAFT'), stem: text('stem').notNull(), correctOption: text('correct_option').notNull(),
+  revisionNumber: integer('revision_number').notNull(), status: text('status').notNull().default('DRAFT'), requiresMedicalReview: text('requires_medical_review').notNull().default('no'), medicalReviewedBy: uuid('medical_reviewed_by').references(() => studioProfile.id, { onDelete: 'restrict' }), medicalReviewedAt: timestamp('medical_reviewed_at', { withTimezone: true }), stem: text('stem').notNull(), correctOption: text('correct_option').notNull(),
   subjectId: uuid('subject_id').notNull().references(() => taxonomySubject.id, { onDelete: 'restrict' }),
   chapterId: uuid('chapter_id').notNull().references(() => taxonomyChapter.id, { onDelete: 'restrict' }),
   topicId: uuid('topic_id').notNull().references(() => taxonomyTopic.id, { onDelete: 'restrict' }),
@@ -214,3 +214,20 @@ export const studioReference = pgTable('studio_reference', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 }, (table) => [index('studio_reference_revision_position_idx').on(table.revisionId, table.position)]);
+
+export const studioReviewQueue = pgTable('studio_review_queue', {
+  id: uuid('id').defaultRandom().primaryKey(), reviewerProfileId: uuid('reviewer_profile_id').notNull().references(() => studioProfile.id, { onDelete: 'restrict' }).unique(), name: text('name').notNull().default('My review queue'), createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(), updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+});
+
+export const studioReviewQueueItem = pgTable('studio_review_queue_item', {
+  id: uuid('id').defaultRandom().primaryKey(), queueId: uuid('queue_id').notNull().references(() => studioReviewQueue.id, { onDelete: 'cascade' }), questionId: uuid('question_id').notNull().references(() => studioQuestion.id, { onDelete: 'cascade' }), revisionId: uuid('revision_id').notNull().references(() => studioQuestionRevision.id, { onDelete: 'cascade' }), reviewerProfileId: uuid('reviewer_profile_id').notNull().references(() => studioProfile.id, { onDelete: 'restrict' }),
+  status: text('status').notNull().default('ASSIGNED'), position: integer('position').notNull().default(0), assignedBy: uuid('assigned_by').notNull().references(() => studioProfile.id, { onDelete: 'restrict' }), completedAt: timestamp('completed_at', { withTimezone: true }), createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(), updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (table) => [uniqueIndex('studio_review_queue_item_revision_reviewer_unique').on(table.revisionId, table.reviewerProfileId), index('studio_review_queue_item_reviewer_status_position_idx').on(table.reviewerProfileId, table.status, table.position)]);
+
+export const studioReview = pgTable('studio_review', {
+  id: uuid('id').defaultRandom().primaryKey(), questionId: uuid('question_id').notNull().references(() => studioQuestion.id, { onDelete: 'cascade' }), revisionId: uuid('revision_id').notNull().references(() => studioQuestionRevision.id, { onDelete: 'cascade' }), reviewerProfileId: uuid('reviewer_profile_id').notNull().references(() => studioProfile.id, { onDelete: 'restrict' }), decision: text('decision').notNull(), comment: text('comment'), isMedicalReview: text('is_medical_review').notNull().default('no'), createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [index('studio_review_revision_created_idx').on(table.revisionId, table.createdAt)]);
+
+export const studioComment = pgTable('studio_comment', {
+  id: uuid('id').defaultRandom().primaryKey(), questionId: uuid('question_id').notNull().references(() => studioQuestion.id, { onDelete: 'cascade' }), revisionId: uuid('revision_id').references(() => studioQuestionRevision.id, { onDelete: 'cascade' }), parentCommentId: uuid('parent_comment_id'), body: text('body').notNull(), createdBy: uuid('created_by').notNull().references(() => studioProfile.id, { onDelete: 'restrict' }), createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(), updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()), deletedAt: timestamp('deleted_at', { withTimezone: true }),
+}, (table) => [index('studio_comment_question_created_idx').on(table.questionId, table.createdAt)]);
