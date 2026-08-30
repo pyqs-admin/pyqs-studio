@@ -3,12 +3,14 @@ export const blockTypeSchema = z.enum(['paragraph', 'heading', 'bullet_list', 'n
 const id = z.uuid();
 export const revisionParamsSchema = z.object({ questionId: id, revisionId: id }).strict();
 export const blockParamsSchema = z.object({ questionId: id, revisionId: id, blockId: id }).strict();
-export const replaceBlocksSchema = z.object({ blocks: z.array(z.object({ blockType: blockTypeSchema, content: z.unknown(), position: z.number().int().min(0) }).strict()).max(100) }).strict();
-const blockInputSchema = z.object({ blockType: blockTypeSchema, content: z.unknown() }).strict();
+const blockFieldsSchema = z.object({ blockType: blockTypeSchema, content: z.unknown(), mediaAssetId: id.optional() }).strict();
+const blockRecordSchema = blockFieldsSchema.superRefine((block, ctx) => { if (block.blockType === 'image' && !block.mediaAssetId) ctx.addIssue({ code: 'custom', message: 'Image blocks require a mediaAssetId.' }); if (block.blockType !== 'image' && block.mediaAssetId) ctx.addIssue({ code: 'custom', message: 'Only image blocks may link a media asset.' }); });
+export const replaceBlocksSchema = z.object({ blocks: z.array(blockRecordSchema.extend({ position: z.number().int().min(0) })).max(100) }).strict();
+const blockInputSchema = blockRecordSchema;
 export const revisionIdParamsSchema = z.object({ revisionId: id }).strict();
 export const explanationBlockIdParamsSchema = z.object({ blockId: id }).strict();
 export const addBlockSchema = blockInputSchema;
-export const updateBlockSchema = blockInputSchema.partial().refine((value) => Object.keys(value).length > 0);
+export const updateBlockSchema = blockFieldsSchema.partial().refine((value) => Object.keys(value).length > 0);
 const referenceSchema = z.object({ sourceTitle: z.string().trim().min(1).max(500), sourceUrl: z.url().max(2_000), citation: z.string().trim().min(1).max(5_000).optional(), position: z.number().int().min(0) }).strict();
 export const replaceReferencesSchema = z.object({ references: z.array(referenceSchema).max(100).superRefine((references, ctx) => { if (new Set(references.map((reference) => reference.position)).size !== references.length) ctx.addIssue({ code: 'custom', message: 'Reference positions must be unique.' }); }) }).strict();
 export type ReplaceBlocks = z.infer<typeof replaceBlocksSchema>;
