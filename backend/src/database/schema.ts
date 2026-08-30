@@ -1,4 +1,4 @@
-import { index, integer, jsonb, pgTable, primaryKey, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { index, integer, jsonb, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 
 export const studioProfile = pgTable('studio_profile', {
   id: uuid('id').primaryKey(),
@@ -181,7 +181,7 @@ export const studioQuestionContributor = pgTable('studio_question_contributor', 
   id: uuid('id').defaultRandom().primaryKey(), questionId: uuid('question_id').notNull().references(() => studioQuestion.id, { onDelete: 'cascade' }),
   profileId: uuid('profile_id').notNull().references(() => studioProfile.id, { onDelete: 'restrict' }), contributionType: text('contribution_type').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => [uniqueIndex('studio_question_contributor_question_profile_type_unique').on(table.questionId, table.profileId, table.contributionType)]);
 
 export const studioAuditLog = pgTable('studio_audit_log', {
   id: uuid('id').defaultRandom().primaryKey(), projectId: uuid('project_id').references(() => studioProject.id, { onDelete: 'restrict' }),
@@ -202,3 +202,15 @@ export const studioExplanationBlock = pgTable('studio_explanation_block', {
   blockType: text('block_type').notNull(), content: jsonb('content').notNull(), position: integer('position').notNull(), createdBy: uuid('created_by').notNull().references(() => studioProfile.id, { onDelete: 'restrict' }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(), updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 }, (table) => [index('studio_explanation_block_revision_position_idx').on(table.revisionId, table.position)]);
+
+export const studioReference = pgTable('studio_reference', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  revisionId: uuid('revision_id').notNull().references(() => studioQuestionRevision.id, { onDelete: 'cascade' }),
+  sourceTitle: text('source_title').notNull(),
+  sourceUrl: text('source_url').notNull(),
+  citation: text('citation'),
+  position: integer('position').notNull(),
+  createdBy: uuid('created_by').notNull().references(() => studioProfile.id, { onDelete: 'restrict' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (table) => [index('studio_reference_revision_position_idx').on(table.revisionId, table.position)]);
