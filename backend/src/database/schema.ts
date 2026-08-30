@@ -191,7 +191,7 @@ export const studioAuditLog = pgTable('studio_audit_log', {
 }, (table) => [index('studio_audit_log_question_created_idx').on(table.questionId, table.createdAt)]);
 
 export const studioMediaAsset = pgTable('studio_media_asset', {
-  id: uuid('id').defaultRandom().primaryKey(), storagePath: text('storage_path').notNull().unique(), fileName: text('file_name').notNull(), mimeType: text('mime_type').notNull(), byteSize: integer('byte_size'),
+  id: uuid('id').defaultRandom().primaryKey(), storagePath: text('storage_path').notNull().unique(), fileUrl: text('file_url').notNull(), fileName: text('file_name').notNull(), mimeType: text('mime_type').notNull(), byteSize: integer('byte_size').notNull(),
   sourceUrl: text('source_url'), creator: text('creator'), license: text('license').notNull().default('unverified'), attribution: text('attribution'), caption: text('caption'), altText: text('alt_text'),
   annotated: text('annotated').notNull().default('no'), verificationStatus: text('verification_status').notNull().default('unverified'), uploadedBy: uuid('uploaded_by').notNull().references(() => studioProfile.id, { onDelete: 'restrict' }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(), updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
@@ -199,7 +199,7 @@ export const studioMediaAsset = pgTable('studio_media_asset', {
 
 export const studioExplanationBlock = pgTable('studio_explanation_block', {
   id: uuid('id').defaultRandom().primaryKey(), revisionId: uuid('revision_id').notNull().references(() => studioQuestionRevision.id, { onDelete: 'cascade' }),
-  blockType: text('block_type').notNull(), content: jsonb('content').notNull(), position: integer('position').notNull(), createdBy: uuid('created_by').notNull().references(() => studioProfile.id, { onDelete: 'restrict' }),
+  blockType: text('block_type').notNull(), content: jsonb('content').notNull(), mediaAssetId: uuid('media_asset_id').references(() => studioMediaAsset.id, { onDelete: 'restrict' }), position: integer('position').notNull(), createdBy: uuid('created_by').notNull().references(() => studioProfile.id, { onDelete: 'restrict' }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(), updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 }, (table) => [index('studio_explanation_block_revision_position_idx').on(table.revisionId, table.position)]);
 
