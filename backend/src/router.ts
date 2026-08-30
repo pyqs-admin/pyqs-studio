@@ -11,6 +11,7 @@ import { questionRevisionsRouter, questionsRouter, questionWorkspaceRouter } fro
 import { explanationsRouter } from './modules/explanations/explanations.routes.js';
 import { auditRouter } from './modules/audit/audit.routes.js';
 import { reviewRouter } from './modules/review/review.routes.js';
+import { mediaRouter } from './modules/media/media.routes.js';
 
 export const apiRouter: ExpressRouter = Router();
 
@@ -23,6 +24,7 @@ apiRouter.use('/', questionRevisionsRouter);
 apiRouter.use('/', explanationsRouter);
 apiRouter.use('/', auditRouter);
 apiRouter.use('/', reviewRouter);
+apiRouter.use('/', mediaRouter);
 
 apiRouter.get('/health', asyncHandler(async (_req, res) => {
   await checkDbConnection();
