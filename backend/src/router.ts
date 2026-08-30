@@ -10,6 +10,7 @@ import { projectsRouter } from './modules/projects/projects.routes.js';
 import { questionRevisionsRouter, questionsRouter, questionWorkspaceRouter } from './modules/questions/questions.routes.js';
 import { explanationsRouter } from './modules/explanations/explanations.routes.js';
 import { auditRouter } from './modules/audit/audit.routes.js';
+import { reviewRouter } from './modules/review/review.routes.js';
 
 export const apiRouter: ExpressRouter = Router();
 
@@ -21,6 +22,7 @@ apiRouter.use('/', questionWorkspaceRouter);
 apiRouter.use('/', questionRevisionsRouter);
 apiRouter.use('/', explanationsRouter);
 apiRouter.use('/', auditRouter);
+apiRouter.use('/', reviewRouter);
 
 apiRouter.get('/health', asyncHandler(async (_req, res) => {
   await checkDbConnection();

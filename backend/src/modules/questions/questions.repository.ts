@@ -42,7 +42,7 @@ export class QuestionsRepository {
   }
   async updateDraft(questionId: string, revisionId: string, input: QuestionDraftInput, profileId: string) {
     return db.transaction(async (tx) => {
-      const [revision] = await tx.update(studioQuestionRevision).set({ stem: input.stem, correctOption: input.correctOption, chapterId: input.chapterId, topicId: input.topicId, difficultyId: input.difficultyId }).where(and(eq(studioQuestionRevision.id, revisionId), eq(studioQuestionRevision.questionId, questionId))).returning();
+      const [revision] = await tx.update(studioQuestionRevision).set({ stem: input.stem, correctOption: input.correctOption, chapterId: input.chapterId, topicId: input.topicId, difficultyId: input.difficultyId, requiresMedicalReview: 'yes', medicalReviewedBy: null, medicalReviewedAt: null }).where(and(eq(studioQuestionRevision.id, revisionId), eq(studioQuestionRevision.questionId, questionId))).returning();
       await tx.delete(studioQuestionOption).where(eq(studioQuestionOption.revisionId, revisionId));
       await tx.delete(studioQuestionRevisionType).where(eq(studioQuestionRevisionType.revisionId, revisionId));
       await tx.insert(studioQuestionOption).values(input.options.map((item, position) => ({ revisionId, ...item, position })));
