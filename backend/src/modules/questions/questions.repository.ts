@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, ilike, inArray, or } from 'drizzle-orm';
 
 import { db } from '../../database/client.js';
-import { studioAuditLog, studioQuestion, studioQuestionContributor, studioQuestionOption, studioQuestionRevision, studioQuestionRevisionType } from '../../database/schema.js';
+import { studioAuditLog, studioProfile, studioQuestion, studioQuestionContributor, studioQuestionOption, studioQuestionRevision, studioQuestionRevisionType } from '../../database/schema.js';
 import type { QuestionDraftInput, QuestionListQuery } from './questions.schemas.js';
 
 export class QuestionsRepository {
@@ -11,12 +11,14 @@ export class QuestionsRepository {
       const [revision] = await tx.insert(studioQuestionRevision).values({ questionId: question!.id, revisionNumber: 1, stem: input.stem, correctOption: input.correctOption, subjectId, chapterId: input.chapterId, topicId: input.topicId, difficultyId: input.difficultyId, createdBy: profileId }).returning();
       await tx.insert(studioQuestionOption).values(input.options.map((item, position) => ({ revisionId: revision!.id, ...item, position })));
       await tx.insert(studioQuestionRevisionType).values(input.questionTypeIds.map((questionTypeId) => ({ revisionId: revision!.id, questionTypeId })));
-      await tx.insert(studioQuestionContributor).values({ questionId: question!.id, profileId, contributionType: 'primary_creator' });
+      await tx.insert(studioQuestionContributor).values({ questionId: question!.id, profileId, contributionType: 'primary_creator' }).onConflictDoNothing();
       await tx.insert(studioAuditLog).values({ projectId, questionId: question!.id, revisionId: revision!.id, actorProfileId: profileId, action: 'question_created', metadata: {} });
       return { question: question!, revision: revision! };
     });
   }
   async find(questionId: string) { const [row] = await db.select().from(studioQuestion).where(eq(studioQuestion.id, questionId)); return row ?? null; }
+  listContributors(questionId: string) { return db.select({ contributor: studioQuestionContributor, profile: { id: studioProfile.id, email: studioProfile.email, displayName: studioProfile.displayName, status: studioProfile.status } }).from(studioQuestionContributor).innerJoin(studioProfile, eq(studioQuestionContributor.profileId, studioProfile.id)).where(eq(studioQuestionContributor.questionId, questionId)).orderBy(asc(studioQuestionContributor.createdAt)); }
+  listAuditLogs(questionId: string) { return db.select({ audit: studioAuditLog, actor: { id: studioProfile.id, email: studioProfile.email, displayName: studioProfile.displayName } }).from(studioAuditLog).innerJoin(studioProfile, eq(studioAuditLog.actorProfileId, studioProfile.id)).where(eq(studioAuditLog.questionId, questionId)).orderBy(desc(studioAuditLog.createdAt)); }
   async findByRevisionId(revisionId: string) { const [row] = await db.select({ question: studioQuestion, revision: studioQuestionRevision }).from(studioQuestionRevision).innerJoin(studioQuestion, eq(studioQuestionRevision.questionId, studioQuestion.id)).where(eq(studioQuestionRevision.id, revisionId)); return row ?? null; }
   async findRevision(questionId: string, revisionId: string) { const [row] = await db.select().from(studioQuestionRevision).where(and(eq(studioQuestionRevision.id, revisionId), eq(studioQuestionRevision.questionId, questionId))); return row ?? null; }
   async findRevisionByNumber(questionId: string, revisionNumber: number) { const [row] = await db.select().from(studioQuestionRevision).where(and(eq(studioQuestionRevision.questionId, questionId), eq(studioQuestionRevision.revisionNumber, revisionNumber))); return row ?? null; }
@@ -45,7 +47,7 @@ export class QuestionsRepository {
       await tx.delete(studioQuestionRevisionType).where(eq(studioQuestionRevisionType.revisionId, revisionId));
       await tx.insert(studioQuestionOption).values(input.options.map((item, position) => ({ revisionId, ...item, position })));
       await tx.insert(studioQuestionRevisionType).values(input.questionTypeIds.map((questionTypeId) => ({ revisionId, questionTypeId })));
-      await tx.insert(studioQuestionContributor).values({ questionId, profileId, contributionType: 'question_editor' });
+      await tx.insert(studioQuestionContributor).values({ questionId, profileId, contributionType: 'question_editor' }).onConflictDoNothing();
       await tx.insert(studioAuditLog).values({ questionId, revisionId, actorProfileId: profileId, action: 'question_draft_saved', metadata: {} });
       return revision ?? null;
     });
@@ -86,7 +88,7 @@ export class QuestionsRepository {
       const [options, types] = await Promise.all([tx.select().from(studioQuestionOption).where(eq(studioQuestionOption.revisionId, source.id)), tx.select().from(studioQuestionRevisionType).where(eq(studioQuestionRevisionType.revisionId, source.id))]);
       await tx.insert(studioQuestionOption).values(options.map(({ id, revisionId: _revisionId, ...option }) => ({ ...option, revisionId: revision!.id })));
       if (types.length) await tx.insert(studioQuestionRevisionType).values(types.map((type) => ({ revisionId: revision!.id, questionTypeId: type.questionTypeId })));
-      await tx.insert(studioQuestionContributor).values({ questionId: question!.id, profileId, contributionType: 'primary_creator' });
+      await tx.insert(studioQuestionContributor).values({ questionId: question!.id, profileId, contributionType: 'primary_creator' }).onConflictDoNothing();
       await tx.insert(studioAuditLog).values({ projectId: targetProjectId, questionId: question!.id, revisionId: revision!.id, actorProfileId: profileId, action: 'question_duplicated', metadata: { sourceQuestionId: questionId } });
       return { question: question!, revision: revision! };
     });

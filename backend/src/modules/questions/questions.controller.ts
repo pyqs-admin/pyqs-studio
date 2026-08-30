@@ -9,6 +9,8 @@ export class QuestionsController {
   async listProjectSubject(req: Request, res: Response) { const p = projectSubjectParamsSchema.parse(req.params); sendSuccess(res, await questionsService.list({ ...questionListQuerySchema.parse(req.query), projectId: p.projectId, subjectId: p.subjectId }, session(res))); }
   async create(req: Request, res: Response) { const p = projectSubjectParamsSchema.parse(req.params); sendSuccess(res, await questionsService.create(p.projectId, p.subjectId, createQuestionSchema.parse(req.body), session(res)), 201); }
   async get(req: Request, res: Response) { sendSuccess(res, await questionsService.get(questionIdParamsSchema.parse(req.params).questionId, session(res))); }
+  async contributors(req: Request, res: Response) { sendSuccess(res, await questionsService.listContributors(questionIdParamsSchema.parse(req.params).questionId, session(res))); }
+  async auditLog(req: Request, res: Response) { sendSuccess(res, await questionsService.listAuditLogs(questionIdParamsSchema.parse(req.params).questionId, session(res))); }
   async listRevisions(req: Request, res: Response) { sendSuccess(res, await questionsService.listRevisions(questionIdParamsSchema.parse(req.params).questionId, session(res))); }
   async getRevision(req: Request, res: Response) { const p = revisionNumberParamsSchema.parse(req.params); sendSuccess(res, await questionsService.getRevision(p.questionId, p.revisionNumber, session(res))); }
   async createRevision(req: Request, res: Response) { sendSuccess(res, await questionsService.createRevision(questionIdParamsSchema.parse(req.params).questionId, session(res)), 201); }

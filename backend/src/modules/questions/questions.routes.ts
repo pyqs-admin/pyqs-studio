@@ -12,6 +12,8 @@ questionWorkspaceRouter.use(requireStudioAuth);
 questionRevisionsRouter.use(requireStudioAuth);
 questionsRouter.get('/', validateRequest({ query: questionListQuerySchema }), asyncHandler((req, res) => questionsController.list(req, res)));
 questionsRouter.get('/:questionId', validateRequest({ params: questionIdParamsSchema }), asyncHandler((req, res) => questionsController.get(req, res)));
+questionsRouter.get('/:questionId/contributors', validateRequest({ params: questionIdParamsSchema }), asyncHandler((req, res) => questionsController.contributors(req, res)));
+questionsRouter.get('/:questionId/audit-log', validateRequest({ params: questionIdParamsSchema }), asyncHandler((req, res) => questionsController.auditLog(req, res)));
 questionsRouter.get('/:questionId/revisions', validateRequest({ params: questionIdParamsSchema }), asyncHandler((req, res) => questionsController.listRevisions(req, res)));
 questionsRouter.get('/:questionId/revisions/:revisionNumber', validateRequest({ params: revisionNumberParamsSchema }), asyncHandler((req, res) => questionsController.getRevision(req, res)));
 questionsRouter.post('/:questionId/revisions', validateRequest({ params: questionIdParamsSchema }), asyncHandler((req, res) => questionsController.createRevision(req, res)));
