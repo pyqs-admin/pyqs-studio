@@ -183,6 +183,32 @@ export const studioQuestionContributor = pgTable('studio_question_contributor', 
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [uniqueIndex('studio_question_contributor_question_profile_type_unique').on(table.questionId, table.profileId, table.contributionType)]);
 
+export const studioQuestionAssignment = pgTable('studio_question_assignment', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  questionId: uuid('question_id').notNull().references(() => studioQuestion.id, { onDelete: 'cascade' }),
+  profileId: uuid('profile_id').notNull().references(() => studioProfile.id, { onDelete: 'restrict' }),
+  assignmentType: text('assignment_type').notNull(),
+  assignedBy: uuid('assigned_by').notNull().references(() => studioProfile.id, { onDelete: 'restrict' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (table) => [
+  uniqueIndex('studio_question_assignment_question_type_unique').on(table.questionId, table.assignmentType),
+  index('studio_question_assignment_profile_type_idx').on(table.profileId, table.assignmentType),
+]);
+
+export const studioSavedView = pgTable('studio_saved_view', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  profileId: uuid('profile_id').notNull().references(() => studioProfile.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  resource: text('resource').notNull().default('questions'),
+  filters: jsonb('filters').notNull().default({}),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (table) => [
+  uniqueIndex('studio_saved_view_profile_resource_name_unique').on(table.profileId, table.resource, table.name),
+  index('studio_saved_view_profile_resource_updated_idx').on(table.profileId, table.resource, table.updatedAt),
+]);
+
 export const studioAuditLog = pgTable('studio_audit_log', {
   id: uuid('id').defaultRandom().primaryKey(), projectId: uuid('project_id').references(() => studioProject.id, { onDelete: 'restrict' }),
   questionId: uuid('question_id').references(() => studioQuestion.id, { onDelete: 'cascade' }), revisionId: uuid('revision_id').references(() => studioQuestionRevision.id, { onDelete: 'cascade' }),
