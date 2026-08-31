@@ -19,7 +19,7 @@ export const revisionParamsSchema = z.object({ questionId: id, revisionId: id })
 export const revisionIdParamsSchema = z.object({ revisionId: id }).strict();
 export const revisionNumberParamsSchema = z.object({ questionId: id, revisionNumber: z.coerce.number().int().positive() }).strict();
 export const questionListQuerySchema = z.object({
-  projectId: id.optional(), subjectId: id.optional(), status: questionStatusSchema.optional(), q: z.string().trim().min(1).max(200).optional(),
+  projectId: id.optional(), subjectId: id.optional(), chapterId: id.optional(), topicId: id.optional(), difficultyId: id.optional(), createdBy: id.optional(), assignedTo: id.optional(), status: questionStatusSchema.optional(), q: z.string().trim().min(1).max(200).optional(),
   limit: z.coerce.number().int().min(1).max(100).default(30), offset: z.coerce.number().int().min(0).default(0),
 }).strict();
 export const duplicateQuestionSchema = z.object({ projectId: id.optional() }).strict();

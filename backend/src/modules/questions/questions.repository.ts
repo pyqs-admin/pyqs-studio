@@ -1,7 +1,7 @@
-import { and, asc, desc, eq, ilike, inArray, or } from 'drizzle-orm';
+import { and, asc, desc, eq, ilike, inArray, max, or } from 'drizzle-orm';
 
 import { db } from '../../database/client.js';
-import { studioAuditLog, studioProfile, studioQuestion, studioQuestionContributor, studioQuestionOption, studioQuestionRevision, studioQuestionRevisionType } from '../../database/schema.js';
+import { studioAuditLog, studioProfile, studioQuestion, studioQuestionAssignment, studioQuestionContributor, studioQuestionOption, studioQuestionRevision, studioQuestionRevisionType } from '../../database/schema.js';
 import type { QuestionDraftInput, QuestionListQuery } from './questions.schemas.js';
 
 export class QuestionsRepository {
@@ -29,15 +29,23 @@ export class QuestionsRepository {
     return { revision, options, questionTypes };
   }
   async list(query: QuestionListQuery, accessibleProjectIds: string[] | null) {
+    const latestRevision = db.select({ questionId: studioQuestionRevision.questionId, revisionNumber: max(studioQuestionRevision.revisionNumber).as('revision_number') }).from(studioQuestionRevision).groupBy(studioQuestionRevision.questionId).as('latest_revision');
     const conditions = [
       query.projectId ? eq(studioQuestion.projectId, query.projectId) : undefined,
       query.status ? eq(studioQuestion.status, query.status) : undefined,
       query.subjectId ? eq(studioQuestionRevision.subjectId, query.subjectId) : undefined,
+      query.chapterId ? eq(studioQuestionRevision.chapterId, query.chapterId) : undefined,
+      query.topicId ? eq(studioQuestionRevision.topicId, query.topicId) : undefined,
+      query.difficultyId ? eq(studioQuestionRevision.difficultyId, query.difficultyId) : undefined,
+      query.createdBy ? eq(studioQuestion.createdBy, query.createdBy) : undefined,
+      query.assignedTo ? eq(studioQuestionAssignment.profileId, query.assignedTo) : undefined,
       query.q ? or(ilike(studioQuestion.publicQid, `%${query.q}%`), ilike(studioQuestionRevision.stem, `%${query.q}%`)) : undefined,
       accessibleProjectIds === null ? undefined : (accessibleProjectIds.length ? inArray(studioQuestion.projectId, accessibleProjectIds) : eq(studioQuestion.id, '__no_access__')),
     ].filter((condition): condition is NonNullable<typeof condition> => condition !== undefined);
     return db.select({ question: studioQuestion, revision: studioQuestionRevision }).from(studioQuestion)
-      .innerJoin(studioQuestionRevision, and(eq(studioQuestionRevision.questionId, studioQuestion.id), eq(studioQuestionRevision.revisionNumber, 1)))
+      .innerJoin(latestRevision, eq(latestRevision.questionId, studioQuestion.id))
+      .innerJoin(studioQuestionRevision, and(eq(studioQuestionRevision.questionId, latestRevision.questionId), eq(studioQuestionRevision.revisionNumber, latestRevision.revisionNumber)))
+      .leftJoin(studioQuestionAssignment, and(eq(studioQuestionAssignment.questionId, studioQuestion.id), eq(studioQuestionAssignment.assignmentType, 'tutor')))
       .where(conditions.length ? and(...conditions) : undefined).orderBy(desc(studioQuestion.updatedAt)).limit(query.limit).offset(query.offset);
   }
   async updateDraft(questionId: string, revisionId: string, input: QuestionDraftInput, profileId: string) {
