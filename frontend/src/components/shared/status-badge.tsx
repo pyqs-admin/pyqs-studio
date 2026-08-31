@@ -1,0 +1,3 @@
+import { cn } from "@/lib/utils";
+const styles: Record<string, string> = { DRAFT: "bg-slate-100 text-slate-700", QUESTION_SUBMITTED: "bg-blue-50 text-blue-700", NEEDS_EXPLANATION: "bg-amber-50 text-amber-800", EXPLANATION_READY: "bg-cyan-50 text-cyan-800", UNDER_REVIEW: "bg-violet-50 text-violet-800", CHANGES_REQUESTED: "bg-orange-50 text-orange-800", APPROVED: "bg-emerald-50 text-emerald-800", PUBLISHED: "bg-green-50 text-green-800", ARCHIVED: "bg-slate-100 text-slate-500" };
+export function StatusBadge({ status }: { status: string }) { return <span className={cn("inline-flex rounded-full px-2 py-0.5 text-xs font-medium", styles[status] ?? "bg-slate-100 text-slate-700")}>{status.replaceAll("_", " ")}</span>; }
