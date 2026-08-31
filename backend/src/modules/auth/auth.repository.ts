@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { asc, eq, ilike } from 'drizzle-orm';
 
 import { db } from '../../database/client.js';
 import {
@@ -12,6 +12,9 @@ import {
 import type { StudioProfileRecord } from './auth.types.js';
 
 export class AuthRepository {
+  async listProfiles(query?: string) {
+    return db.select({ id: studioProfile.id, email: studioProfile.email, displayName: studioProfile.displayName, status: studioProfile.status }).from(studioProfile).where(query ? ilike(studioProfile.displayName, `%${query}%`) : undefined).orderBy(asc(studioProfile.displayName)).limit(50);
+  }
   async findProfileById(profileId: string): Promise<StudioProfileRecord | null> {
     const [profile] = await db
       .select({

@@ -5,6 +5,7 @@ import { checkDbConnection } from './database/client.js';
 import { asyncHandler } from './lib/async-handler.js';
 import { sendSuccess } from './lib/api-response.js';
 import { authRouter } from './modules/auth/auth.routes.js';
+import { authController } from './modules/auth/auth.controller.js';
 import { taxonomyRouter } from './modules/taxonomy/taxonomy.routes.js';
 import { projectsRouter } from './modules/projects/projects.routes.js';
 import { questionRevisionsRouter, questionsRouter, questionWorkspaceRouter } from './modules/questions/questions.routes.js';
@@ -18,6 +19,7 @@ import { operationsRouter } from './modules/operations/operations.routes.js';
 export const apiRouter: ExpressRouter = Router();
 
 apiRouter.use('/auth', authRouter);
+apiRouter.get('/users', asyncHandler((req, res) => authController.listUsers(req, res)));
 apiRouter.use('/taxonomy', taxonomyRouter);
 apiRouter.use('/projects', projectsRouter);
 apiRouter.use('/questions', questionsRouter);
