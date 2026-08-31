@@ -16,6 +16,7 @@ export class TaxonomyRepository {
   async findSubject(id: string) { const [row] = await db.select().from(taxonomySubject).where(eq(taxonomySubject.id, id)); return row ?? null; }
   async findChapter(id: string) { const [row] = await db.select().from(taxonomyChapter).where(eq(taxonomyChapter.id, id)); return row ?? null; }
   async findTopic(id: string) { const [row] = await db.select().from(taxonomyTopic).where(eq(taxonomyTopic.id, id)); return row ?? null; }
+  async findDifficulty(id: string) { const [row] = await db.select().from(taxonomyDifficulty).where(eq(taxonomyDifficulty.id, id)); return row ?? null; }
   async createSubject(input: CreateSubject) { const [row] = await db.insert(taxonomySubject).values(input).returning(); return row; }
   async updateSubject(id: string, input: UpdateSubject) { const [row] = await db.update(taxonomySubject).set(input).where(eq(taxonomySubject.id, id)).returning(); return row ?? null; }
   async createChapter(input: CreateChapter) { const [row] = await db.insert(taxonomyChapter).values(input).returning(); return row; }

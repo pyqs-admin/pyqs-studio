@@ -13,6 +13,7 @@ import { auditRouter } from './modules/audit/audit.routes.js';
 import { reviewRouter } from './modules/review/review.routes.js';
 import { mediaRouter } from './modules/media/media.routes.js';
 import { publishRouter } from './modules/publish/publish.routes.js';
+import { operationsRouter } from './modules/operations/operations.routes.js';
 
 export const apiRouter: ExpressRouter = Router();
 
@@ -27,6 +28,7 @@ apiRouter.use('/', auditRouter);
 apiRouter.use('/', reviewRouter);
 apiRouter.use('/', mediaRouter);
 apiRouter.use('/', publishRouter);
+apiRouter.use('/', operationsRouter);
 
 apiRouter.get('/health', asyncHandler(async (_req, res) => {
   await checkDbConnection();

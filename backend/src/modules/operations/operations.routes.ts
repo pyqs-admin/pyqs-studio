@@ -1,0 +1,17 @@
+import { Router, type Router as ExpressRouter } from 'express';
+import { asyncHandler } from '../../lib/async-handler.js';
+import { requireStudioAuth } from '../../middleware/require-studio-auth.middleware.js';
+import { validateRequest } from '../../middleware/validate.middleware.js';
+import { operationsController } from './operations.controller.js';
+import { bulkArchiveSchema, bulkAssignSchema, bulkDifficultySchema, bulkTaxonomySchema, createSavedViewSchema, savedViewIdParamsSchema, searchQuerySchema, updateSavedViewSchema } from './operations.schemas.js';
+export const operationsRouter: ExpressRouter = Router();
+operationsRouter.use(requireStudioAuth);
+operationsRouter.get('/search', validateRequest({ query: searchQuerySchema }), asyncHandler((req, res) => operationsController.search(req, res)));
+operationsRouter.get('/saved-views', asyncHandler((req, res) => operationsController.listSavedViews(req, res)));
+operationsRouter.post('/saved-views', validateRequest({ body: createSavedViewSchema }), asyncHandler((req, res) => operationsController.createSavedView(req, res)));
+operationsRouter.patch('/saved-views/:viewId', validateRequest({ params: savedViewIdParamsSchema, body: updateSavedViewSchema }), asyncHandler((req, res) => operationsController.updateSavedView(req, res)));
+operationsRouter.delete('/saved-views/:viewId', validateRequest({ params: savedViewIdParamsSchema }), asyncHandler((req, res) => operationsController.deleteSavedView(req, res)));
+operationsRouter.post('/questions/bulk/assign', validateRequest({ body: bulkAssignSchema }), asyncHandler((req, res) => operationsController.assign(req, res)));
+operationsRouter.post('/questions/bulk/change-taxonomy', validateRequest({ body: bulkTaxonomySchema }), asyncHandler((req, res) => operationsController.taxonomy(req, res)));
+operationsRouter.post('/questions/bulk/change-difficulty', validateRequest({ body: bulkDifficultySchema }), asyncHandler((req, res) => operationsController.difficulty(req, res)));
+operationsRouter.post('/questions/bulk/archive', validateRequest({ body: bulkArchiveSchema }), asyncHandler((req, res) => operationsController.archive(req, res)));
