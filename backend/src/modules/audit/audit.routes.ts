@@ -1,10 +1,10 @@
-import { Router } from 'express';
+import { Router, type Router as ExpressRouter } from 'express';
 import { asyncHandler } from '../../lib/async-handler.js';
 import { requireStudioAuth } from '../../middleware/require-studio-auth.middleware.js';
 import { validateRequest } from '../../middleware/validate.middleware.js';
 import { auditController } from './audit.controller.js';
 import { auditLogQuerySchema, projectIdParamsSchema } from './audit.schemas.js';
-export const auditRouter = Router();
+export const auditRouter: ExpressRouter = Router();
 auditRouter.use(requireStudioAuth);
 auditRouter.get('/projects/:projectId/audit-log', validateRequest({ params: projectIdParamsSchema }), asyncHandler((req, res) => auditController.listProject(req, res)));
 auditRouter.get('/audit-logs', validateRequest({ query: auditLogQuerySchema }), asyncHandler((req, res) => auditController.listAll(req, res)));

@@ -1,11 +1,11 @@
-import { Router } from 'express';
+import { Router, type Router as ExpressRouter } from 'express';
 import { asyncHandler } from '../../lib/async-handler.js';
 import { requireStudioAuth } from '../../middleware/require-studio-auth.middleware.js';
 import { validateRequest } from '../../middleware/validate.middleware.js';
 import { explanationsController } from './explanations.controller.js';
 import { addBlockSchema, explanationBlockIdParamsSchema, replaceBlocksSchema, replaceReferencesSchema, revisionIdParamsSchema, revisionParamsSchema, updateBlockSchema } from './explanations.schemas.js';
 
-export const explanationsRouter = Router();
+export const explanationsRouter: ExpressRouter = Router();
 explanationsRouter.use(requireStudioAuth);
 explanationsRouter.get('/questions/:questionId/revisions/:revisionId/explanation-blocks', validateRequest({ params: revisionParamsSchema }), asyncHandler((req, res) => explanationsController.list(req, res)));
 explanationsRouter.put('/questions/:questionId/revisions/:revisionId/explanation-blocks', validateRequest({ params: revisionParamsSchema, body: replaceBlocksSchema }), asyncHandler((req, res) => explanationsController.replace(req, res)));
