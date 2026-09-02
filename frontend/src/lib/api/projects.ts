@@ -9,6 +9,7 @@ export type ProjectMember = { member: { id: string; projectRole: string; status:
 export type QuestionRow = { question: { id: string; publicQid: string; status: string; projectId: string; createdBy: string }; revision: { id: string; stem: string; subjectId: string; topicId: string; chapterId: string } };
 export type ReviewQueueItem = { item: { id: string; status: string }; question: { id: string }; revision: { id: string } };
 export type StudioProfile = { id: string; displayName: string; email: string; status: string };
+export type PublishReadyItem = { question: { id: string; publicQid: string; status: string }; revision: { id: string; revisionNumber: number; status: string; stem: string } };
 export const getProjects = () => studioFetch<ProjectListItem[]>("/projects");
 export const getProject = (projectId: string) => studioFetch<ProjectDetails>(`/projects/${projectId}`);
 export const getProjectMembers = (projectId: string) => studioFetch<ProjectMember[]>(`/projects/${projectId}/members`);
@@ -17,5 +18,7 @@ export const getQuestions = (params: Record<string, string | number | undefined>
 export const getReviewQueue = () => studioFetch<ReviewQueueItem[]>("/review/queue");
 export const createProject = (body: { name: string; examId: string; year: number; session?: string }) => studioFetch<Project>("/projects", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 export const getStudioUsers = () => studioFetch<StudioProfile[]>("/users");
+export const getPublishReadyQuestions = () => studioFetch<PublishReadyItem[]>("/publish/ready");
+export const publishQuestion = (questionId: string) => studioFetch<unknown>(`/questions/${questionId}/publish`, { method: "POST" });
 export const addProjectMember = (projectId: string, body: { profileId: string; projectRole: string }) => studioFetch<ProjectMember>(`/projects/${projectId}/members`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 export const updateProject = (projectId: string, body: { name?: string; session?: string | null; status?: "active" | "archived" }) => studioFetch<Project>(`/projects/${projectId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
