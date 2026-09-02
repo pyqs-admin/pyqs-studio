@@ -14,6 +14,8 @@ Copy `.env.example` to `.env`, configure the dedicated Studio Supabase/PostgreSQ
 
 Use `pnpm db:generate` followed by `pnpm db:migrate` for the shared Studio database. This retains an auditable, versioned schema history.
 
+For a new empty Studio database, run `pnpm db:seed` after migrations. It is idempotent and seeds roles, permissions, role mappings, UPSC CMS, public-PYQS subject names, fallback General chapter/topics, difficulties, and controlled question types. Create the first user in the dedicated Studio Supabase Auth tenant, then set `STUDIO_INITIAL_ADMIN_ID`, `STUDIO_INITIAL_ADMIN_EMAIL`, and `STUDIO_INITIAL_ADMIN_NAME` before running it to grant that user the admin role. The fallback taxonomy is intentionally not a substitute for an editorial chapter/topic import.
+
 `pnpm db:push` is available only for a disposable local development database. It calculates the difference between `src/database/schema.ts` and the live database, then applies it directly without using migration files. Do not run `db:push` against a database that has pending generated migrations, and do not use it for the shared Studio environment.
 
 Use `pnpm db:push:preview` to inspect the proposed direct changes without applying them.
