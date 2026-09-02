@@ -1,11 +1,11 @@
-import { browserEnv } from "@/lib/env";
+import { getBrowserEnv } from "@/lib/env";
 import { createClient } from "@/lib/supabase/client";
 import { type ApiFailure, type ApiSuccess, StudioApiError } from "./types";
 
 export async function studioFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const { data: { session } } = await createClient().auth.getSession();
   if (!session?.access_token) throw new StudioApiError("UNAUTHENTICATED", "Please sign in to continue.", 401);
-  const response = await fetch(`${browserEnv.NEXT_PUBLIC_STUDIO_API_URL}${path}`, {
+  const response = await fetch(`${getBrowserEnv().NEXT_PUBLIC_STUDIO_API_URL}${path}`, {
     ...init,
     headers: { Accept: "application/json", Authorization: `Bearer ${session.access_token}`, ...init.headers },
   });

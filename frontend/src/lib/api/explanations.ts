@@ -1,5 +1,5 @@
 import { studioFetch } from "./client";
-import { browserEnv } from "@/lib/env";
+import { getBrowserEnv } from "@/lib/env";
 
 export type ExplanationBlock = { id: string; blockType: "paragraph" | "heading" | "bullet_list" | "numbered_list" | "image" | "table" | "other_options" | "educational_objective" | "references" | "high_yield_callout"; content: unknown; mediaAssetId: string | null; position: number };
 export type Reference = { id?: string; sourceTitle: string; sourceUrl: string; citation: string | null; position: number };
@@ -14,6 +14,6 @@ export async function uploadMedia(file: File, metadata: { sourceUrl: string; cre
   const response = await fetch(upload.signedUrl, { method: "PUT", headers: { "Content-Type": file.type, "x-upsert": "false" }, body: file });
   if (!response.ok) throw new Error("The media file could not be uploaded.");
   const publicPath = upload.storagePath.split("/").map(encodeURIComponent).join("/");
-  return studioFetch<MediaAsset>("/media", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...metadata, storagePath: upload.storagePath, fileName: file.name, mimeType: file.type, byteSize: file.size, fileUrl: `${browserEnv.NEXT_PUBLIC_STUDIO_SUPABASE_URL}/storage/v1/object/public/${upload.bucket}/${publicPath}`, verificationStatus: "unverified" }) });
+  return studioFetch<MediaAsset>("/media", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...metadata, storagePath: upload.storagePath, fileName: file.name, mimeType: file.type, byteSize: file.size, fileUrl: `${getBrowserEnv().NEXT_PUBLIC_STUDIO_SUPABASE_URL}/storage/v1/object/public/${upload.bucket}/${publicPath}`, verificationStatus: "unverified" }) });
 }
 export const getStudentPreview = (revisionId: string) => studioFetch<{ question: { publicQid: string }; revision: { stem: string; correctOption: string }; options: { label: string; content: string }[]; explanationBlocks: ExplanationBlock[]; references: Reference[] }>(`/question-revisions/${revisionId}/student-preview`);

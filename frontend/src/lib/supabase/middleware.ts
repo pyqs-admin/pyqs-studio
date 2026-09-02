@@ -1,12 +1,12 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
-import { browserEnv } from "@/lib/env";
+import { getBrowserEnv } from "@/lib/env";
 
 export function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
   const supabase = createServerClient(
-    browserEnv.NEXT_PUBLIC_STUDIO_SUPABASE_URL,
-    browserEnv.NEXT_PUBLIC_STUDIO_SUPABASE_PUBLISHABLE_KEY,
+    getBrowserEnv().NEXT_PUBLIC_STUDIO_SUPABASE_URL,
+    getBrowserEnv().NEXT_PUBLIC_STUDIO_SUPABASE_PUBLISHABLE_KEY,
     {
       cookies: {
         getAll: () => request.cookies.getAll(),
