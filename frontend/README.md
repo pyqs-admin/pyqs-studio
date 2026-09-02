@@ -25,3 +25,16 @@ The planned Next.js application will use the dedicated Studio Supabase project f
 ## API readiness notes
 
 The question, project, review, explanation, media, publishing, search, saved-view, and bulk-operation APIs can support the initial frontend vertical slices. Dashboards, notifications, project aggregate endpoints, and Studio user administration remain backend prerequisites for their respective frontend phases. RAG remains intentionally deferred.
+
+## Production runbook
+
+Before deploying, set the three values in `.env.example` in the hosting provider, configure the exact deployed origin in Studio API `CORS_ORIGINS`, and set the same origin as an allowed redirect URL in Studio Supabase Auth. Do not expose a service-role key or publishing-webhook secret to this application.
+
+For media uploads, configure `STUDIO_MEDIA_BUCKET` in the backend and use a bucket/read policy that makes each registered `fileUrl` reachable by authorised Studio and student-preview consumers. Verify an upload, registration, explanation image selection, and preview in staging.
+
+Release checks:
+
+1. Run `pnpm typecheck` and `pnpm build` with production-shaped public environment values.
+2. Verify sign-in, inactive-access handling, sign-out, project/question creation, explanation upload, review decisions, and publishing in staging.
+3. Confirm keyboard navigation, visible focus, small-screen tables, and loading/error/empty states on every primary route.
+4. Configure client/server error monitoring in the deployment platform; the application route error boundary preserves a recoverable fallback for unexpected route failures.
