@@ -1,22 +1,217 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, Eye, Image, Plus, Save, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Eye, Plus, Save, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { MediaUploader } from "@/components/questions/media-uploader";
-import { getExplanation, getMedia, getReferences, getStudentPreview, replaceExplanation, replaceReferences, type ExplanationBlock, type Reference } from "@/lib/api/explanations";
+import {
+  getExplanation,
+  getMedia,
+  getReferences,
+  getStudentPreview,
+  replaceExplanation,
+  replaceReferences,
+  type ExplanationBlock,
+  type MediaAsset,
+  type Reference,
+} from "@/lib/api/explanations";
 
 const blockTypes: ExplanationBlock["blockType"][] = ["paragraph", "heading", "bullet_list", "numbered_list", "high_yield_callout", "educational_objective", "other_options", "references", "table", "image"];
 const makeBlock = (type: ExplanationBlock["blockType"], position: number): ExplanationBlock => ({ id: crypto.randomUUID(), blockType: type, content: type.includes("list") ? [] : "", mediaAssetId: null, position });
-const text = (content: unknown) => typeof content === "string" ? content : JSON.stringify(content ?? "");
+const isList = (type: ExplanationBlock["blockType"]) => type.includes("list");
+const text = (content: unknown) => (typeof content === "string" ? content : Array.isArray(content) ? content.join("\n") : JSON.stringify(content ?? ""));
+
 export function ExplanationWorkspace({ revisionId }: { revisionId: string }) {
-  const queryClient = useQueryClient(); const explanation = useQuery({ queryKey: ["explanation", revisionId], queryFn: () => getExplanation(revisionId) }); const references = useQuery({ queryKey: ["references", revisionId], queryFn: () => getReferences(revisionId) }); const media = useQuery({ queryKey: ["media"], queryFn: getMedia }); const [preview, setPreview] = useState(false);
-  const [blocks, setBlocks] = useState<ExplanationBlock[] | null>(null); const [refs, setRefs] = useState<Reference[] | null>(null);
-  const currentBlocks = blocks ?? explanation.data ?? []; const currentRefs = refs ?? references.data ?? [];
-  const save = useMutation({ mutationFn: async () => { await replaceExplanation(revisionId, currentBlocks.map(({ id: _id, ...block }, position) => ({ ...block, position }))); await replaceReferences(revisionId, currentRefs.map((reference, position) => ({ ...reference, position }))); }, onSuccess: () => { setBlocks(null); setRefs(null); void queryClient.invalidateQueries({ queryKey: ["explanation", revisionId] }); void queryClient.invalidateQueries({ queryKey: ["references", revisionId] }); } });
+  const queryClient = useQueryClient();
+  const explanation = useQuery({ queryKey: ["explanation", revisionId], queryFn: () => getExplanation(revisionId) });
+  const references = useQuery({ queryKey: ["references", revisionId], queryFn: () => getReferences(revisionId) });
+  const media = useQuery({ queryKey: ["media"], queryFn: getMedia });
+  const [preview, setPreview] = useState(false);
+  const [blocks, setBlocks] = useState<ExplanationBlock[] | null>(null);
+  const [refs, setRefs] = useState<Reference[] | null>(null);
+  const currentBlocks = blocks ?? explanation.data ?? [];
+  const currentRefs = refs ?? references.data ?? [];
+
+  const save = useMutation({
+    mutationFn: async () => {
+      await replaceExplanation(
+        revisionId,
+        currentBlocks.map((block, position) => ({ blockType: block.blockType, content: block.content, mediaAssetId: block.mediaAssetId, position }))
+      );
+      await replaceReferences(revisionId, currentRefs.map((reference, position) => ({ ...reference, position })));
+    },
+    onSuccess: () => {
+      setBlocks(null);
+      setRefs(null);
+      void queryClient.invalidateQueries({ queryKey: ["explanation", revisionId] });
+      void queryClient.invalidateQueries({ queryKey: ["references", revisionId] });
+    },
+  });
+
   const studentPreview = useQuery({ queryKey: ["preview", revisionId], queryFn: () => getStudentPreview(revisionId), enabled: preview });
-  const move = (index: number, direction: -1 | 1) => { const target = index + direction; if (target < 0 || target >= currentBlocks.length) return; const next = [...currentBlocks]; [next[index], next[target]] = [next[target], next[index]]; setBlocks(next.map((block, position) => ({ ...block, position }))); };
-  if (explanation.isLoading || references.isLoading) return <div className="h-80 animate-pulse rounded-xl bg-slate-200" />;
-  return <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]"><section className="space-y-4"><div className="flex flex-wrap justify-between gap-3"><div><h2 className="font-semibold">Explanation blocks</h2><p className="mt-1 text-sm text-slate-600">Changes require a new medical review where applicable.</p></div><div className="flex gap-2"><Button variant="outline" onClick={() => setPreview((value) => !value)}><Eye className="size-4" />Preview</Button><Button onClick={() => save.mutate()} disabled={save.isPending}><Save className="size-4" />Save explanation</Button></div></div>{currentBlocks.map((block, index) => <article key={block.id} className="rounded-xl border bg-white p-4"><div className="mb-3 flex items-center justify-between gap-3"><select value={block.blockType} onChange={(event) => setBlocks(currentBlocks.map((item, itemIndex) => itemIndex === index ? { ...item, blockType: event.target.value as ExplanationBlock["blockType"], content: event.target.value.includes("list") ? [] : item.content } : item))} className="h-9 rounded-md border px-2 text-sm">{blockTypes.map((type) => <option key={type} value={type}>{type.replaceAll("_", " ")}</option>)}</select><div className="flex gap-1"><Button aria-label="Move block up" variant="ghost" onClick={() => move(index, -1)} disabled={index === 0}><ArrowUp className="size-4" /></Button><Button aria-label="Move block down" variant="ghost" onClick={() => move(index, 1)} disabled={index === currentBlocks.length - 1}><ArrowDown className="size-4" /></Button><Button aria-label="Delete block" variant="ghost" onClick={() => setBlocks(currentBlocks.filter((_, itemIndex) => itemIndex !== index))}><Trash2 className="size-4" /></Button></div></div>{block.blockType === "image" ? <div><select value={block.mediaAssetId ?? ""} onChange={(event) => setBlocks(currentBlocks.map((item, itemIndex) => itemIndex === index ? { ...item, mediaAssetId: event.target.value || null } : item))} className="h-10 w-full rounded-md border px-3 text-sm"><option value="">Select a media asset</option>{media.data?.map((asset) => <option key={asset.id} value={asset.id}>{asset.fileName} · {asset.verificationStatus}</option>)}</select>{media.data?.find((asset) => asset.id === block.mediaAssetId)?.verificationStatus !== "verified" && block.mediaAssetId && <p className="mt-2 text-xs text-amber-800">This asset is not verified. Confirm license, attribution, and educational suitability before review.</p>}</div> : <textarea value={text(block.content)} onChange={(event) => setBlocks(currentBlocks.map((item, itemIndex) => itemIndex === index ? { ...item, content: item.blockType.includes("list") ? event.target.value.split("\n").filter(Boolean) : event.target.value } : item))} className="min-h-24 w-full rounded-md border p-3 text-sm" placeholder="Write this explanation block…" />}</article>)}<select aria-label="Add explanation block" defaultValue="" onChange={(event) => { if (event.target.value) { setBlocks([...currentBlocks, makeBlock(event.target.value as ExplanationBlock["blockType"], currentBlocks.length)]); event.target.value = ""; } }} className="h-10 rounded-md border bg-white px-3 text-sm"><option value="">Add a block…</option>{blockTypes.map((type) => <option key={type} value={type}>{type.replaceAll("_", " ")}</option>)}</select><section className="rounded-xl border bg-white p-4"><h2 className="font-semibold">References</h2>{currentRefs.map((reference, index) => <div key={reference.id ?? index} className="mt-3 grid gap-2 sm:grid-cols-2"><input value={reference.sourceTitle} onChange={(event) => setRefs(currentRefs.map((item, itemIndex) => itemIndex === index ? { ...item, sourceTitle: event.target.value } : item))} className="h-9 rounded-md border px-3 text-sm" placeholder="Source title" /><input value={reference.sourceUrl} onChange={(event) => setRefs(currentRefs.map((item, itemIndex) => itemIndex === index ? { ...item, sourceUrl: event.target.value } : item))} className="h-9 rounded-md border px-3 text-sm" placeholder="https://…" /><input value={reference.citation ?? ""} onChange={(event) => setRefs(currentRefs.map((item, itemIndex) => itemIndex === index ? { ...item, citation: event.target.value } : item))} className="h-9 rounded-md border px-3 text-sm sm:col-span-2" placeholder="Citation or note" /></div>)}<Button className="mt-3" variant="outline" onClick={() => setRefs([...currentRefs, { sourceTitle: "", sourceUrl: "", citation: "", position: currentRefs.length }])}><Plus className="size-4" />Add reference</Button></section></section><aside className="space-y-4"><section className="rounded-xl border bg-white p-5"><h2 className="flex items-center gap-2 font-semibold"><Image className="size-4" />Media library</h2><p className="mt-1 text-sm text-slate-600">Choose assets in image blocks. Upload and metadata management remain available through the existing API.</p><ul className="mt-3 space-y-2 text-sm">{media.data?.slice(0, 8).map((asset) => <li key={asset.id} className="rounded border p-2"><p className="truncate font-medium">{asset.fileName}</p><p className={asset.verificationStatus === "verified" ? "text-emerald-700" : "text-amber-700"}>{asset.verificationStatus} · {asset.license}</p></li>)}</ul><MediaUploader /></section>{preview && <section className="rounded-xl border bg-white p-5"><h2 className="font-semibold">Student preview</h2>{studentPreview.isLoading && <p className="mt-3 text-sm text-slate-600">Loading preview…</p>}{studentPreview.data && <div className="mt-3 text-sm"><p className="font-medium">{studentPreview.data.revision.stem}</p><ol className="mt-3 space-y-1">{studentPreview.data.options.map((option) => <li key={option.label}>{option.label}. {option.content}</li>)}</ol><div className="mt-4 space-y-2">{studentPreview.data.explanationBlocks.map((block) => <p key={block.id}>{text(block.content)}</p>)}</div></div>}</section>}</aside></div>;
+
+  const updateBlock = (index: number, patch: Partial<ExplanationBlock>) => setBlocks(currentBlocks.map((item, itemIndex) => (itemIndex === index ? { ...item, ...patch } : item)));
+  const move = (index: number, direction: -1 | 1) => {
+    const target = index + direction;
+    if (target < 0 || target >= currentBlocks.length) return;
+    const next = [...currentBlocks];
+    [next[index], next[target]] = [next[target], next[index]];
+    setBlocks(next.map((block, position) => ({ ...block, position })));
+  };
+
+  if (explanation.isLoading || references.isLoading) return <div className="h-80 animate-pulse rounded-pq-lg bg-pq-muted-2" />;
+
+  return (
+    <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="min-w-0 space-y-0">
+        <Card
+          title="Explanation blocks"
+          headerRight={
+            <span className="flex gap-1.5">
+              <button type="button" className="btn sm" onClick={() => setPreview((value) => !value)}>
+                <Eye className="size-3.5" aria-hidden="true" /> Preview
+              </button>
+              <button type="button" className="btn sm pri" onClick={() => save.mutate()} disabled={save.isPending}>
+                <Save className="size-3.5" aria-hidden="true" /> Save
+              </button>
+            </span>
+          }
+        >
+          <p className="hint">Write it like a document: headings, lists, tables and figures. Why the other options are wrong, the objective and the references are their own blocks.</p>
+          {currentBlocks.map((block, index) => (
+            <div className="blk" key={block.id}>
+              <div className="blk-h">
+                <select
+                  value={block.blockType}
+                  className="inp !w-auto !min-h-0 !border-0 !bg-transparent !px-1 !py-0.5 !text-[11px] !font-bold !uppercase !tracking-widest"
+                  aria-label="Block type"
+                  onChange={(event) => {
+                    const type = event.target.value as ExplanationBlock["blockType"];
+                    updateBlock(index, { blockType: type, content: isList(type) ? (isList(block.blockType) ? block.content : []) : isList(block.blockType) ? "" : block.content });
+                  }}
+                >
+                  {blockTypes.map((type) => (
+                    <option key={type} value={type}>{type.replaceAll("_", " ")}</option>
+                  ))}
+                </select>
+                <span className="grow" />
+                <button type="button" className="btn-icon !h-7 !w-7" aria-label="Move block up" onClick={() => move(index, -1)} disabled={index === 0}>
+                  <ArrowUp className="size-3.5" />
+                </button>
+                <button type="button" className="btn-icon !h-7 !w-7" aria-label="Move block down" onClick={() => move(index, 1)} disabled={index === currentBlocks.length - 1}>
+                  <ArrowDown className="size-3.5" />
+                </button>
+                <button type="button" className="btn-icon !h-7 !w-7" aria-label="Delete block" onClick={() => setBlocks(currentBlocks.filter((_, itemIndex) => itemIndex !== index))}>
+                  <Trash2 className="size-3.5" />
+                </button>
+              </div>
+              <div className="blk-b">
+                {block.blockType === "image" ? (
+                  <>
+                    <select className="inp" aria-label="Media asset" value={block.mediaAssetId ?? ""} onChange={(event) => updateBlock(index, { mediaAssetId: event.target.value || null })}>
+                      <option value="">Choose a picture…</option>
+                      {media.data?.map((asset) => (
+                        <option key={asset.id} value={asset.id}>{asset.fileName}</option>
+                      ))}
+                    </select>
+                    {block.mediaAssetId && <BlockImage asset={media.data?.find((asset) => asset.id === block.mediaAssetId)} />}
+                  </>
+                ) : (
+                  <textarea
+                    className="inp"
+                    rows={isList(block.blockType) ? 4 : 3}
+                    value={text(block.content)}
+                    placeholder={block.blockType.replaceAll("_", " ")}
+                    onChange={(event) => updateBlock(index, { content: isList(block.blockType) ? event.target.value.split("\n") : event.target.value })}
+                  />
+                )}
+              </div>
+            </div>
+          ))}
+          <div className="addrow">
+            <button type="button" className="btn sm" onClick={() => setBlocks([...currentBlocks, makeBlock("paragraph", currentBlocks.length)])}>
+              <Plus className="size-3.5" aria-hidden="true" /> Add block
+            </button>
+          </div>
+        </Card>
+
+        <Card title="References">
+          {currentRefs.map((reference, index) => (
+            <div className="blk" key={reference.id ?? index}>
+              <div className="blk-h">
+                Reference {index + 1}
+                <span className="grow" />
+                <button type="button" className="btn-icon !h-7 !w-7" aria-label="Remove reference" onClick={() => setRefs(currentRefs.filter((_, itemIndex) => itemIndex !== index))}>
+                  <Trash2 className="size-3.5" />
+                </button>
+              </div>
+              <div className="blk-b space-y-2">
+                <input className="inp" placeholder="Source title" value={reference.sourceTitle} onChange={(event) => setRefs(currentRefs.map((item, itemIndex) => (itemIndex === index ? { ...item, sourceTitle: event.target.value } : item)))} />
+                <input className="inp" placeholder="Source URL" value={reference.sourceUrl} onChange={(event) => setRefs(currentRefs.map((item, itemIndex) => (itemIndex === index ? { ...item, sourceUrl: event.target.value } : item)))} />
+                <input className="inp" placeholder="Citation (optional)" value={reference.citation ?? ""} onChange={(event) => setRefs(currentRefs.map((item, itemIndex) => (itemIndex === index ? { ...item, citation: event.target.value } : item)))} />
+              </div>
+            </div>
+          ))}
+          <div className="addrow">
+            <button
+              type="button"
+              className="btn sm"
+              onClick={() => setRefs([...currentRefs, { sourceTitle: "", sourceUrl: "", citation: null, position: currentRefs.length }])}
+            >
+              <Plus className="size-3.5" aria-hidden="true" /> Add reference
+            </button>
+          </div>
+        </Card>
+      </div>
+
+      <aside className="space-y-4">
+        {preview && (
+          <Card title="Student preview">
+            {studentPreview.isLoading ? (
+              <p className="small">Loading preview…</p>
+            ) : studentPreview.isError || !studentPreview.data ? (
+              <p className="small">No student preview is available for this revision.</p>
+            ) : (
+              <div className="space-y-3 text-sm">
+                <p className="text-lg font-bold leading-6 tracking-tight text-pq-ink-strong">{studentPreview.data.revision.stem}</p>
+                <ol className="space-y-2">
+                  {studentPreview.data.options.map((option) => (
+                    <li key={option.label}>
+                      <span className="optkey !inline-grid !mr-2">{option.label}</span>
+                      <span>{option.content}</span>
+                    </li>
+                  ))}
+                </ol>
+                {studentPreview.data.explanationBlocks.map((block) => (
+                  <p key={block.id} className="whitespace-pre-line">{typeof block.content === "string" ? block.content : Array.isArray(block.content) ? block.content.join("\n") : JSON.stringify(block.content)}</p>
+                ))}
+                {studentPreview.data.references.length > 0 && (
+                  <ol className="list-decimal space-y-1 pl-5">
+                    {studentPreview.data.references.map((reference, index) => (
+                      <li key={reference.id ?? index}><a href={reference.sourceUrl} target="_blank" rel="noreferrer">{reference.sourceTitle}</a></li>
+                    ))}
+                  </ol>
+                )}
+              </div>
+            )}
+          </Card>
+        )}
+        <MediaUploader />
+      </aside>
+    </div>
+  );
+}
+
+function BlockImage({ asset }: { asset?: MediaAsset }) {
+  if (!asset) return null;
+  return (
+    <div className="mt-2.5">
+      <img className="imgprev" src={asset.fileUrl} alt={asset.altText} />
+      <p className="credit">
+        {asset.caption || asset.fileName}
+        {asset.license !== "unverified" ? ` — ${asset.license}` : <span className="miss"> source and licence not set</span>}
+      </p>
+    </div>
+  );
 }
