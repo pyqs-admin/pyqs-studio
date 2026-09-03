@@ -1,13 +1,54 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { PageHeader } from "@/components/shared/page-header";
+import { usePageHeader } from "@/components/layout/header-context";
 import { ContentSkeleton, EmptyState, ErrorState } from "@/components/shared/state-panels";
 import { getStudioUsers } from "@/lib/api/projects";
 
 export default function UsersPage() {
+  usePageHeader([{ label: "Users" }]);
   const users = useQuery({ queryKey: ["studio", "users"], queryFn: getStudioUsers });
+
   if (users.isLoading) return <ContentSkeleton rows={5} />;
   if (users.isError || !users.data) return <ErrorState title="Studio users could not be loaded" description="Check your access and try again." onRetry={() => void users.refetch()} />;
-  return <><PageHeader eyebrow="Access directory" title="Studio users" description="Active Studio profiles available for project membership." />{users.data.length === 0 ? <EmptyState title="No Studio users" description="Provision users in Studio Supabase Auth, then add their Studio profiles and roles." /> : <section className="overflow-hidden rounded-xl border bg-white"><table className="w-full text-left text-sm"><thead className="border-b bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-5 py-3">Name</th><th className="px-5 py-3">Email</th><th className="px-5 py-3">Status</th></tr></thead><tbody>{users.data.map((user) => <tr key={user.id} className="border-b last:border-0"><td className="px-5 py-4 font-medium">{user.displayName}</td><td className="px-5 py-4 text-slate-600">{user.email}</td><td className="px-5 py-4 capitalize">{user.status}</td></tr>)}</tbody></table></section>}</>;
+
+  return (
+    <>
+      <h1>Users</h1>
+      <p className="sub">Active Studio profiles available for project membership.</p>
+      {users.data.length === 0 ? (
+        <EmptyState title="No Studio users" description="Provision users in Studio Supabase Auth, then add their Studio profiles and roles." />
+      ) : (
+        <table className="list">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {users.data.map((user) => (
+              <tr key={user.id}>
+                <td>
+                  <span className="flex items-center gap-2.5">
+                    <span className="avatar !h-7 !w-7 !text-[11px]">{initials(user.displayName)}</span>
+                    <span className="font-bold">{user.displayName}</span>
+                  </span>
+                </td>
+                <td>{user.email}</td>
+                <td>
+                  {user.status === "active" ? <span className="tag good">active</span> : <span className="tag bad">{user.status}</span>}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </>
+  );
+}
+
+function initials(name: string) {
+  return name.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
 }
