@@ -1,7 +1,70 @@
 "use client";
+
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Archive, Pencil, X } from "lucide-react";
+import { Archive, Pencil } from "lucide-react";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
+import { Field } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import { type Project, updateProject } from "@/lib/api/projects";
-export function ProjectActions({ project }: { project: Project }) { const [open, setOpen] = useState(false); const [name, setName] = useState(project.name); const [session, setSession] = useState(project.session ?? ""); const client = useQueryClient(); const mutation = useMutation({ mutationFn: (body: { name?: string; session?: string | null; status?: "active" | "archived" }) => updateProject(project.id, body), onSuccess: () => { client.invalidateQueries({ queryKey: ["projects"] }); client.invalidateQueries({ queryKey: ["projects", project.id] }); setOpen(false); } }); const archive = () => { if (window.confirm(`Archive ${project.name}? It will remain in the audit history but be removed from active work.`)) mutation.mutate({ status: "archived" }); }; return <><div className="flex items-center gap-2"><Button variant="outline" onClick={() => setOpen(true)}><Pencil className="size-4" />Edit</Button>{project.status === "active" && <Button variant="outline" onClick={archive} disabled={mutation.isPending}><Archive className="size-4" />Archive</Button>}</div>{open && <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/30 px-4" role="dialog" aria-modal="true" aria-label="Edit project"><form onSubmit={(event) => { event.preventDefault(); mutation.mutate({ name, session: session || null }); }} className="w-full max-w-md rounded-xl border bg-white p-6 shadow-xl"><div className="flex justify-between gap-4"><div><h2 className="font-semibold">Edit project</h2><p className="mt-1 text-sm text-slate-600">Exam and year remain fixed project context.</p></div><Button type="button" variant="ghost" aria-label="Close" onClick={() => setOpen(false)}><X className="size-4" /></Button></div><label className="mt-5 grid gap-1.5 text-sm font-medium">Project name<input className="h-10 rounded-md border px-3" value={name} onChange={(event) => setName(event.target.value)} required /></label><label className="mt-4 grid gap-1.5 text-sm font-medium">Session <span className="font-normal text-slate-500">optional</span><input className="h-10 rounded-md border px-3" value={session} onChange={(event) => setSession(event.target.value)} /></label>{mutation.isError && <p className="mt-4 text-sm text-red-700">Changes could not be saved. Please try again.</p>}<div className="mt-6 flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button type="submit" disabled={mutation.isPending}>Save changes</Button></div></form></div>}</>; }
+
+export function ProjectActions({ project }: { project: Project }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(project.name);
+  const [session, setSession] = useState(project.session ?? "");
+  const client = useQueryClient();
+  const mutation = useMutation({
+    mutationFn: (body: { name?: string; session?: string | null; status?: "active" | "archived" }) => updateProject(project.id, body),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["projects"] });
+      client.invalidateQueries({ queryKey: ["projects", project.id] });
+      setOpen(false);
+    },
+  });
+  const archive = () => {
+    if (window.confirm(`Archive ${project.name}? It will remain in the audit history but be removed from active work.`)) mutation.mutate({ status: "archived" });
+  };
+
+  return (
+    <>
+      <button type="button" className="btn sm" onClick={() => setOpen(true)}>
+        <Pencil className="size-3.5" aria-hidden="true" /> Settings
+      </button>
+      {project.status === "active" && (
+        <button type="button" className="btn sm" onClick={archive} disabled={mutation.isPending}>
+          <Archive className="size-3.5" aria-hidden="true" /> Archive
+        </button>
+      )}
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        title="Project settings"
+        footer={
+          <>
+            <button type="button" className="btn" onClick={() => setOpen(false)}>
+              Cancel
+            </button>
+            <span className="grow" />
+            <button
+              type="button"
+              className="btn pri"
+              onClick={() => mutation.mutate({ name, session: session || null })}
+              disabled={mutation.isPending}
+            >
+              Save
+            </button>
+          </>
+        }
+      >
+        <p className="hint">Exam and year remain fixed project context.</p>
+        <Field label="Name" className="mb-2.5">
+          <Input value={name} onChange={(event) => setName(event.target.value)} required />
+        </Field>
+        <Field label="Session">
+          <Input value={session} onChange={(event) => setSession(event.target.value)} />
+        </Field>
+        {mutation.isError && <p className="err mt-2">Changes could not be saved. Please try again.</p>}
+      </Dialog>
+    </>
+  );
+}

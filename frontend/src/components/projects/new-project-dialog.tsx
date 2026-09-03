@@ -1,11 +1,96 @@
 "use client";
+
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { LoaderCircle, Plus, X } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
+import { Field } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { createProject, getTaxonomy } from "@/lib/api/projects";
-const schema = z.object({ name: z.string().trim().min(3, "Enter a project name."), examId: z.string().uuid("Select an exam."), year: z.coerce.number().int().min(2000).max(2100), session: z.string().trim().max(80).optional() }); type Values = z.infer<typeof schema>;
-export function NewProjectDialog() { const [open, setOpen] = useState(false); const queryClient = useQueryClient(); const taxonomy = useQuery({ queryKey: ["taxonomy"], queryFn: getTaxonomy, staleTime: 300_000 }); const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { name: "", examId: "", year: new Date().getFullYear(), session: "" } }); const mutation = useMutation({ mutationFn: createProject, onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["projects"] }); setOpen(false); form.reset(); } }); return <>{open ? <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/30 px-4" role="dialog" aria-modal="true" aria-label="Create project"><form onSubmit={form.handleSubmit((values) => mutation.mutate(values))} className="w-full max-w-lg rounded-xl border bg-white p-6 shadow-xl"><div className="flex items-start justify-between"><div><h2 className="font-semibold">Create project</h2><p className="mt-1 text-sm text-slate-600">One exam paper for one year and session.</p></div><Button type="button" variant="ghost" aria-label="Close" onClick={() => setOpen(false)}><X className="size-4" /></Button></div><div className="mt-5 grid gap-4"><label className="grid gap-1.5 text-sm font-medium">Project name<input className="h-10 rounded-md border px-3" {...form.register("name")} />{form.formState.errors.name && <span className="text-xs text-red-700">{form.formState.errors.name.message}</span>}</label><label className="grid gap-1.5 text-sm font-medium">Exam<select className="h-10 rounded-md border bg-white px-3" {...form.register("examId")}><option value="">Select an exam</option>{taxonomy.data?.exams.map((exam) => <option key={exam.id} value={exam.id}>{exam.name}</option>)}</select>{form.formState.errors.examId && <span className="text-xs text-red-700">{form.formState.errors.examId.message}</span>}</label><div className="grid gap-4 sm:grid-cols-2"><label className="grid gap-1.5 text-sm font-medium">Year<input className="h-10 rounded-md border px-3" type="number" {...form.register("year")} /></label><label className="grid gap-1.5 text-sm font-medium">Session <span className="font-normal text-slate-500">optional</span><input className="h-10 rounded-md border px-3" placeholder="November" {...form.register("session")} /></label></div></div>{mutation.isError && <p className="mt-4 rounded-md bg-red-50 p-3 text-sm text-red-700">The project could not be created. Check your permission and try again.</p>}<div className="mt-6 flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button type="submit" disabled={mutation.isPending || taxonomy.isLoading}>{mutation.isPending && <LoaderCircle className="size-4 animate-spin" />}Create project</Button></div></form></div> : null}<Button onClick={() => setOpen(true)}><Plus className="size-4" />New project</Button></>; }
+
+const schema = z.object({
+  name: z.string().trim().min(3, "Enter a project name."),
+  examId: z.string().uuid("Select an exam."),
+  year: z.coerce.number().int().min(2000).max(2100),
+  session: z.string().trim().max(80).optional(),
+});
+type Values = z.infer<typeof schema>;
+
+export function NewProjectDialog({ variant = "card" }: { variant?: "card" | "button" }) {
+  const [open, setOpen] = useState(false);
+  const queryClient = useQueryClient();
+  const taxonomy = useQuery({ queryKey: ["taxonomy"], queryFn: getTaxonomy, staleTime: 300_000 });
+  const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { name: "", examId: "", year: new Date().getFullYear(), session: "" } });
+  const mutation = useMutation({
+    mutationFn: createProject,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      setOpen(false);
+      form.reset();
+    },
+  });
+
+  return (
+    <>
+      {variant === "card" ? (
+        <button type="button" className="pcard new" onClick={() => setOpen(true)}>
+          <span className="chip">
+            <Plus className="size-[22px]" strokeWidth={2.5} aria-hidden="true" />
+          </span>
+          <span>New project</span>
+        </button>
+      ) : (
+        <Button onClick={() => setOpen(true)}>
+          <Plus className="size-4" aria-hidden="true" /> New project
+        </Button>
+      )}
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        title="New project"
+        footer={
+          <>
+            <button type="button" className="btn" onClick={() => setOpen(false)}>
+              Cancel
+            </button>
+            <span className="grow" />
+            <button type="button" className="btn pri" onClick={form.handleSubmit((values) => mutation.mutate(values))} disabled={mutation.isPending || taxonomy.isLoading}>
+              Create project
+            </button>
+          </>
+        }
+      >
+        <p className="hint">Exam, year and session are entered here once. Every question filed in this project inherits them.</p>
+        <Field label="Name" required className="mb-2.5">
+          <Input placeholder="NEET-PG 2026 — Pathology" {...form.register("name")} />
+          {form.formState.errors.name && <p className="err">{form.formState.errors.name.message}</p>}
+        </Field>
+        <Field label="Exam" required className="mb-2.5">
+          <Select {...form.register("examId")}>
+            <option value="">Select an exam…</option>
+            {taxonomy.data?.exams.map((exam) => (
+              <option key={exam.id} value={exam.id}>
+                {exam.name}
+              </option>
+            ))}
+          </Select>
+          {form.formState.errors.examId && <p className="err">{form.formState.errors.examId.message}</p>}
+        </Field>
+        <div className="row mb-2.5">
+          <Field label="Year" required className="flex-1">
+            <Input type="number" {...form.register("year")} />
+          </Field>
+          <Field label="Session" className="flex-1">
+            <Input placeholder="May / Nov" {...form.register("session")} />
+          </Field>
+        </div>
+        {mutation.isError && <p className="err">The project could not be created. Check your permission and try again.</p>}
+      </Dialog>
+    </>
+  );
+}
