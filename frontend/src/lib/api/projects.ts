@@ -1,6 +1,24 @@
 import { studioFetch } from "./client";
 
-export type TaxonomyItem = { id: string; name: string; code: string; status: string; subjectId?: string; chapterId?: string };
+export type TaxonomyItem = {
+  id: string;
+  name: string;
+  code: string;
+  status: string;
+  subjectId?: string;
+  chapterId?: string;
+  slug?: string;
+  kind?: string;
+  aliases?: string[];
+  scope?: string | null;
+  includes?: string[];
+  excludes?: string[];
+  overlaps?: string[];
+  referenceSections?: string[];
+  estimatedTopics?: number | null;
+  relatedTopics?: string[];
+  secondarySubjects?: string[];
+};
 export type Taxonomy = { subjects: TaxonomyItem[]; chapters: TaxonomyItem[]; topics: TaxonomyItem[]; difficulties: TaxonomyItem[]; exams: TaxonomyItem[]; questionTypes: TaxonomyItem[] };
 export type Project = { id: string; name: string; examId: string; year: number; session: string | null; status: "active" | "archived"; templateCode: string; targetQuestionCount: number | null; deadline: string | null; projectLeadProfileId: string | null; createdBy: string; createdAt: string; updatedAt: string };
 export type ProjectListItem = { project: Project; exam: TaxonomyItem; memberRole: string | null };
