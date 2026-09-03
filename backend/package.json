@@ -15,6 +15,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "tsx src/database/seed.ts",
+    "db:seed:taxonomy": "tsx src/database/seed-taxonomy.ts",
     "db:push": "drizzle-kit push",
     "db:push:preview": "drizzle-kit push --explain --verbose"
   },
