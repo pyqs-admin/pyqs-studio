@@ -177,14 +177,15 @@ export const studioQuestionRevision = pgTable('studio_question_revision', {
   subjectId: uuid('subject_id').notNull().references(() => taxonomySubject.id, { onDelete: 'restrict' }),
   chapterId: uuid('chapter_id').notNull().references(() => taxonomyChapter.id, { onDelete: 'restrict' }),
   topicId: uuid('topic_id').notNull().references(() => taxonomyTopic.id, { onDelete: 'restrict' }),
-  difficultyId: uuid('difficulty_id').notNull().references(() => taxonomyDifficulty.id, { onDelete: 'restrict' }),
+  difficultyId: uuid('difficulty_id').notNull().references(() => taxonomyDifficulty.id, { onDelete: 'restrict' }), questionType2Id: uuid('question_type_2_id').references(() => taxonomyQuestionType.id, { onDelete: 'restrict' }), presentation: text('presentation'), difficultyRationale: text('difficulty_rationale'),
+  stemMediaAssetIds: jsonb('stem_media_asset_ids').notNull().default([]),
   createdBy: uuid('created_by').notNull().references(() => studioProfile.id, { onDelete: 'restrict' }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(), updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 }, (table) => [index('studio_question_revision_question_idx').on(table.questionId, table.revisionNumber)]);
 
 export const studioQuestionOption = pgTable('studio_question_option', {
   id: uuid('id').defaultRandom().primaryKey(), revisionId: uuid('revision_id').notNull().references(() => studioQuestionRevision.id, { onDelete: 'cascade' }),
-  label: text('label').notNull(), content: text('content').notNull(), position: integer('position').notNull(),
+  label: text('label').notNull(), content: text('content').notNull(), mediaAssetId: uuid('media_asset_id').references(() => studioMediaAsset.id, { onDelete: 'restrict' }), position: integer('position').notNull(),
 }, (table) => [index('studio_question_option_revision_idx').on(table.revisionId, table.position)]);
 
 export const studioQuestionRevisionType = pgTable('studio_question_revision_type', {
@@ -233,7 +234,7 @@ export const studioAuditLog = pgTable('studio_audit_log', {
 
 export const studioMediaAsset = pgTable('studio_media_asset', {
   id: uuid('id').defaultRandom().primaryKey(), storagePath: text('storage_path').notNull().unique(), fileUrl: text('file_url').notNull(), fileName: text('file_name').notNull(), mimeType: text('mime_type').notNull(), byteSize: integer('byte_size').notNull(),
-  sourceUrl: text('source_url'), creator: text('creator'), license: text('license').notNull().default('unverified'), attribution: text('attribution'), caption: text('caption'), altText: text('alt_text'),
+  sourceUrl: text('source_url'), sourceTitle: text('source_title'), creator: text('creator'), license: text('license').notNull().default('unverified'), attribution: text('attribution'), caption: text('caption'), altText: text('alt_text'),
   annotated: text('annotated').notNull().default('no'), verificationStatus: text('verification_status').notNull().default('unverified'), uploadedBy: uuid('uploaded_by').notNull().references(() => studioProfile.id, { onDelete: 'restrict' }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(), updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 }, (table) => [index('studio_media_asset_verification_idx').on(table.verificationStatus)]);
