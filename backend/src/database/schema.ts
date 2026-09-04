@@ -260,6 +260,13 @@ export const studioReviewQueue = pgTable('studio_review_queue', {
   id: uuid('id').defaultRandom().primaryKey(), reviewerProfileId: uuid('reviewer_profile_id').notNull().references(() => studioProfile.id, { onDelete: 'restrict' }).unique(), name: text('name').notNull().default('My review queue'), createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(), updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });
 
+export const studioQuestionSecondaryTopic = pgTable('studio_question_secondary_topic', {
+  revisionId: uuid('revision_id').notNull().references(() => studioQuestionRevision.id, { onDelete: 'cascade' }),
+  topicId: uuid('topic_id').notNull().references(() => taxonomyTopic.id, { onDelete: 'restrict' }),
+  role: text('role').notNull().default('DISEASE'),
+  position: integer('position').notNull().default(0),
+}, (table) => [primaryKey({ columns: [table.revisionId, table.topicId] }), index('studio_question_secondary_topic_revision_idx').on(table.revisionId, table.position)]);
+
 export const studioReviewQueueItem = pgTable('studio_review_queue_item', {
   id: uuid('id').defaultRandom().primaryKey(), queueId: uuid('queue_id').notNull().references(() => studioReviewQueue.id, { onDelete: 'cascade' }), questionId: uuid('question_id').notNull().references(() => studioQuestion.id, { onDelete: 'cascade' }), revisionId: uuid('revision_id').notNull().references(() => studioQuestionRevision.id, { onDelete: 'cascade' }), reviewerProfileId: uuid('reviewer_profile_id').notNull().references(() => studioProfile.id, { onDelete: 'restrict' }),
   status: text('status').notNull().default('ASSIGNED'), position: integer('position').notNull().default(0), assignedBy: uuid('assigned_by').notNull().references(() => studioProfile.id, { onDelete: 'restrict' }), completedAt: timestamp('completed_at', { withTimezone: true }), createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(), updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
