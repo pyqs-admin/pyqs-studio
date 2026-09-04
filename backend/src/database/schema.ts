@@ -163,13 +163,13 @@ export const studioProjectMember = pgTable('studio_project_member', {
 ]);
 
 export const studioQuestion = pgTable('studio_question', {
-  id: uuid('id').defaultRandom().primaryKey(), publicQid: text('public_qid').notNull().unique(),
+  id: uuid('id').defaultRandom().primaryKey(), publicQid: text('public_qid').notNull().unique(), questionNumber: integer('question_number').notNull(),
   projectId: uuid('project_id').notNull().references(() => studioProject.id, { onDelete: 'restrict' }),
   status: text('status').notNull().default('DRAFT'),
   publishedRevisionId: uuid('published_revision_id'),
   createdBy: uuid('created_by').notNull().references(() => studioProfile.id, { onDelete: 'restrict' }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(), updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
-}, (table) => [index('studio_question_project_status_idx').on(table.projectId, table.status)]);
+}, (table) => [index('studio_question_project_status_idx').on(table.projectId, table.status), uniqueIndex('studio_question_project_number_unique').on(table.projectId, table.questionNumber)]);
 
 export const studioQuestionRevision = pgTable('studio_question_revision', {
   id: uuid('id').defaultRandom().primaryKey(), questionId: uuid('question_id').notNull().references(() => studioQuestion.id, { onDelete: 'cascade' }),
