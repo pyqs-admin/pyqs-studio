@@ -88,7 +88,7 @@ function SubjectWorkspaceContent() {
             <tbody>
               {questions.data.map(({ question, revision }) => (
                 <tr key={question.id}>
-                  <td className="mono">{question.publicQid}</td>
+                  <td className="mono">Q{question.questionNumber}</td>
                   <td className="max-w-xl">{revision.stem}</td>
                   <td><StatusBadge status={question.status} /></td>
                   <td className="text-right">
