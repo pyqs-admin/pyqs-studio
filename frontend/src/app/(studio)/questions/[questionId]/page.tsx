@@ -19,11 +19,5 @@ export default function QuestionPage() {
   if (question.isLoading) return <ContentSkeleton rows={7} />;
   if (question.isError || !question.data) return <ErrorState description="We couldn't load this question." onRetry={() => void question.refetch()} />;
 
-  return (
-    <>
-      <h1>{question.data.question.publicQid}</h1>
-      <p className="sub">Revision {question.data.revision.revisionNumber} · {question.data.question.status.replaceAll("_", " ")}</p>
-      <QuestionEditor projectId={question.data.question.projectId} subjectId={question.data.revision.subjectId} details={question.data} />
-    </>
-  );
+  return <QuestionEditor projectId={question.data.question.projectId} subjectId={question.data.revision.subjectId} details={question.data} />;
 }

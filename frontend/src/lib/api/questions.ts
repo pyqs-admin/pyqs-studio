@@ -1,8 +1,9 @@
 import { studioFetch } from "./client";
 
-export type QuestionOption = { id?: string; label: "A" | "B" | "C" | "D"; content: string; position?: number };
-export type QuestionDraft = { stem: string; correctOption: "A" | "B" | "C" | "D"; chapterId: string; topicId: string; difficultyId: string; questionTypeIds: string[]; options: QuestionOption[] };
-export type QuestionDetails = { question: { id: string; publicQid: string; projectId: string; status: string; createdAt: string; updatedAt: string }; revision: { id: string; revisionNumber: number; status: string; stem: string; subjectId: string; chapterId: string; topicId: string; difficultyId: string; correctOption: "A" | "B" | "C" | "D"; createdAt: string }; options: QuestionOption[]; questionTypes: { questionTypeId: string }[] };
+export type QuestionOption = { id?: string; label: "A" | "B" | "C" | "D"; content: string; mediaAssetId?: string | null; position?: number };
+export type SecondaryTopic = { topicId: string; role: "DISEASE" | "MECHANISM" | "DIAGNOSIS" | "MANAGEMENT" | "ASSOCIATION" | "COMPLICATION" | "OTHER" };
+export type QuestionDraft = { stem: string; stemMediaAssetIds: string[]; correctOption: "A" | "B" | "C" | "D"; chapterId: string; topicId: string; difficultyId: string; questionTypeId: string; questionType2Id: string | null; presentation: "DIRECT" | "VIGNETTE"; difficultyRationale: string | null; secondaryTopics: SecondaryTopic[]; options: QuestionOption[] };
+export type QuestionDetails = { question: { id: string; publicQid: string; questionNumber: number; projectId: string; status: string; createdAt: string; updatedAt: string }; revision: { id: string; revisionNumber: number; status: string; stem: string; stemMediaAssetIds: string[]; subjectId: string; chapterId: string; topicId: string; difficultyId: string; questionType2Id: string | null; presentation: "DIRECT" | "VIGNETTE" | null; difficultyRationale: string | null; correctOption: "A" | "B" | "C" | "D"; createdAt: string }; options: QuestionOption[]; questionTypes: { questionTypeId: string }[]; secondaryTopics: SecondaryTopic[] };
 export type Revision = { id: string; revisionNumber: number; status: string; createdAt: string; createdBy: string };
 export type ValidationResult = { valid: boolean; errors: { field: string; message: string }[]; warnings: { field: string; message: string }[]; revisionId: string };
 export type Contributor = { contributor: { id: string; contributionType: string; createdAt: string }; profile: { id: string; displayName: string; email: string } };
