@@ -24,7 +24,7 @@ export default function ExplanationPage() {
     <>
       <h1>Explanation</h1>
       <p className="sub">{question.data.question.publicQid} — build an ordered, referenced explanation and inspect the student-facing preview.</p>
-      <ExplanationWorkspace revisionId={question.data.revision.id} />
+      <ExplanationWorkspace revisionId={question.data.revision.id} previewHref={`/questions/${questionId}/preview`} />
     </>
   );
 }
