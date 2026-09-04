@@ -6,11 +6,12 @@ export type QuestionStatus = (typeof QUESTION_FLOW)[number];
 
 const STATUS_LABEL: Record<string, string> = {
   DRAFT: "Draft",
-  QUESTION_SUBMITTED: "Submitted",
+  QUESTION_SUBMITTED: "Needs explanation",
+  EXPLANATION_DRAFTED: "Explanation drafted",
   NEEDS_EXPLANATION: "Needs explanation",
   RAG_EXPORTED: "RAG exported",
   RAG_IMPORTED: "RAG imported",
-  EXPLANATION_READY: "Explanation ready",
+  EXPLANATION_READY: "Explanation drafted",
   UNDER_REVIEW: "In review",
   CHANGES_REQUESTED: "Changes requested",
   APPROVED: "Approved",
