@@ -3,7 +3,7 @@ export const blockTypeSchema = z.enum(['paragraph', 'heading', 'bullet_list', 'n
 const id = z.uuid();
 export const revisionParamsSchema = z.object({ questionId: id, revisionId: id }).strict();
 export const blockParamsSchema = z.object({ questionId: id, revisionId: id, blockId: id }).strict();
-const blockFieldsSchema = z.object({ blockType: blockTypeSchema, content: z.unknown(), mediaAssetId: id.optional() }).strict();
+const blockFieldsSchema = z.object({ blockType: blockTypeSchema, content: z.unknown(), mediaAssetId: id.nullable().optional() }).strict();
 const blockRecordSchema = blockFieldsSchema.superRefine((block, ctx) => { if (block.blockType === 'image' && !block.mediaAssetId) ctx.addIssue({ code: 'custom', message: 'Image blocks require a mediaAssetId.' }); if (block.blockType !== 'image' && block.mediaAssetId) ctx.addIssue({ code: 'custom', message: 'Only image blocks may link a media asset.' }); });
 export const replaceBlocksSchema = z.object({ blocks: z.array(blockRecordSchema.extend({ position: z.number().int().min(0) })).max(100) }).strict();
 const blockInputSchema = blockRecordSchema;
