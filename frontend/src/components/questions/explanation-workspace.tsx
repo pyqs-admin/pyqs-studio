@@ -2,14 +2,16 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowDown, ArrowUp, Eye, Plus, Save, Trash2 } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
+import { Field } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import { MediaUploader } from "@/components/questions/media-uploader";
 import {
   getExplanation,
   getMedia,
   getReferences,
-  getStudentPreview,
   replaceExplanation,
   replaceReferences,
   type ExplanationBlock,
@@ -18,18 +20,27 @@ import {
 } from "@/lib/api/explanations";
 
 const blockTypes: ExplanationBlock["blockType"][] = ["paragraph", "heading", "bullet_list", "numbered_list", "high_yield_callout", "educational_objective", "other_options", "references", "table", "image"];
-const makeBlock = (type: ExplanationBlock["blockType"], position: number): ExplanationBlock => ({ id: crypto.randomUUID(), blockType: type, content: type.includes("list") ? [] : "", mediaAssetId: null, position });
+type OtherOption = { option: "A" | "B" | "C" | "D"; title: string; explanation: string };
+const makeBlock = (type: ExplanationBlock["blockType"], position: number): ExplanationBlock => ({ id: crypto.randomUUID(), blockType: type, content: type.includes("list") ? [] : type === "other_options" ? [{ option: "A", title: "", explanation: "" }] : "", mediaAssetId: null, position });
 const isList = (type: ExplanationBlock["blockType"]) => type.includes("list");
 const text = (content: unknown) => (typeof content === "string" ? content : Array.isArray(content) ? content.join("\n") : JSON.stringify(content ?? ""));
+const otherOptionsShape = (content: unknown): OtherOption[] => Array.isArray(content) ? content.filter((item): item is OtherOption => Boolean(item && typeof item === "object" && "option" in item)).map((item) => ({ option: item.option, title: String(item.title ?? ""), explanation: String(item.explanation ?? "") })) : [{ option: "A", title: "", explanation: "" }];
+const tableShape = (content: unknown) => {
+  if (content && typeof content === "object" && !Array.isArray(content)) {
+    const value = content as { headers?: unknown; rows?: unknown };
+    if (Array.isArray(value.headers) && Array.isArray(value.rows)) return { headers: value.headers.map(String), rows: value.rows.map((row) => Array.isArray(row) ? row.map(String) : [String(row)]) };
+  }
+  return { headers: [""], rows: [[""]] };
+};
 
-export function ExplanationWorkspace({ revisionId }: { revisionId: string }) {
+export function ExplanationWorkspace({ revisionId, previewHref }: { revisionId: string; previewHref?: string }) {
   const queryClient = useQueryClient();
   const explanation = useQuery({ queryKey: ["explanation", revisionId], queryFn: () => getExplanation(revisionId) });
   const references = useQuery({ queryKey: ["references", revisionId], queryFn: () => getReferences(revisionId) });
   const media = useQuery({ queryKey: ["media"], queryFn: getMedia });
-  const [preview, setPreview] = useState(false);
   const [blocks, setBlocks] = useState<ExplanationBlock[] | null>(null);
   const [refs, setRefs] = useState<Reference[] | null>(null);
+  const [tableEditorIndex, setTableEditorIndex] = useState<number | null>(null);
   const currentBlocks = blocks ?? explanation.data ?? [];
   const currentRefs = refs ?? references.data ?? [];
 
@@ -46,12 +57,12 @@ export function ExplanationWorkspace({ revisionId }: { revisionId: string }) {
       setRefs(null);
       void queryClient.invalidateQueries({ queryKey: ["explanation", revisionId] });
       void queryClient.invalidateQueries({ queryKey: ["references", revisionId] });
+      void queryClient.invalidateQueries({ queryKey: ["question"] });
     },
   });
 
-  const studentPreview = useQuery({ queryKey: ["preview", revisionId], queryFn: () => getStudentPreview(revisionId), enabled: preview });
-
   const updateBlock = (index: number, patch: Partial<ExplanationBlock>) => setBlocks(currentBlocks.map((item, itemIndex) => (itemIndex === index ? { ...item, ...patch } : item)));
+  const insertBlock = (index: number) => setBlocks([...currentBlocks.slice(0, index + 1), makeBlock("paragraph", index + 1), ...currentBlocks.slice(index + 1)].map((block, position) => ({ ...block, position })));
   const move = (index: number, direction: -1 | 1) => {
     const target = index + direction;
     if (target < 0 || target >= currentBlocks.length) return;
@@ -63,15 +74,14 @@ export function ExplanationWorkspace({ revisionId }: { revisionId: string }) {
   if (explanation.isLoading || references.isLoading) return <div className="h-80 animate-pulse rounded-pq-lg bg-pq-muted-2" />;
 
   return (
-    <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+    <div className="space-y-4">
       <div className="min-w-0 space-y-0">
         <Card
           title="Explanation blocks"
           headerRight={
             <span className="flex gap-1.5">
-              <button type="button" className="btn sm" onClick={() => setPreview((value) => !value)}>
-                <Eye className="size-3.5" aria-hidden="true" /> Preview
-              </button>
+              <MediaUploader />
+              {previewHref ? <Link href={previewHref} className="btn sm" style={{ textDecoration: "none" }}><Eye className="size-3.5" aria-hidden="true" /> Open QBank preview</Link> : null}
               <button type="button" className="btn sm pri" onClick={() => save.mutate()} disabled={save.isPending}>
                 <Save className="size-3.5" aria-hidden="true" /> Save
               </button>
@@ -102,6 +112,9 @@ export function ExplanationWorkspace({ revisionId }: { revisionId: string }) {
                 <button type="button" className="btn-icon !h-7 !w-7" aria-label="Move block down" onClick={() => move(index, 1)} disabled={index === currentBlocks.length - 1}>
                   <ArrowDown className="size-3.5" />
                 </button>
+                <button type="button" className="btn-icon !h-7 !w-7" aria-label={`Insert block below block ${index + 1}`} title="Insert block below" onClick={() => insertBlock(index)}>
+                  <Plus className="size-3.5" />
+                </button>
                 <button type="button" className="btn-icon !h-7 !w-7" aria-label="Delete block" onClick={() => setBlocks(currentBlocks.filter((_, itemIndex) => itemIndex !== index))}>
                   <Trash2 className="size-3.5" />
                 </button>
@@ -117,6 +130,14 @@ export function ExplanationWorkspace({ revisionId }: { revisionId: string }) {
                     </select>
                     {block.mediaAssetId && <BlockImage asset={media.data?.find((asset) => asset.id === block.mediaAssetId)} />}
                   </>
+                ) : block.blockType === "other_options" ? (
+                  <OtherOptionsBuilder value={otherOptionsShape(block.content)} onChange={(content) => updateBlock(index, { content })} />
+                ) : block.blockType === "table" ? (
+                  <div className="table-builder-launch">
+                    <p className="hint">Build a table by choosing its dimensions and filling each cell. It will be converted to a PYQS-compatible Markdown table.</p>
+                    <button type="button" className="btn sm" onClick={() => setTableEditorIndex(index)}>Open table builder</button>
+                    {typeof block.content === "object" && block.content !== null && <span className="small">{tableShape(block.content).headers.length} columns · {tableShape(block.content).rows.length} rows</span>}
+                  </div>
                 ) : (
                   <textarea
                     className="inp"
@@ -135,6 +156,8 @@ export function ExplanationWorkspace({ revisionId }: { revisionId: string }) {
             </button>
           </div>
         </Card>
+
+        {tableEditorIndex !== null && currentBlocks[tableEditorIndex]?.blockType === "table" && <TableBuilderDialog initial={tableShape(currentBlocks[tableEditorIndex].content)} onClose={() => setTableEditorIndex(null)} onSave={(content) => { updateBlock(tableEditorIndex, { content }); setTableEditorIndex(null); }} />}
 
         <Card title="References">
           {currentRefs.map((reference, index) => (
@@ -165,40 +188,6 @@ export function ExplanationWorkspace({ revisionId }: { revisionId: string }) {
         </Card>
       </div>
 
-      <aside className="space-y-4">
-        {preview && (
-          <Card title="Student preview">
-            {studentPreview.isLoading ? (
-              <p className="small">Loading preview…</p>
-            ) : studentPreview.isError || !studentPreview.data ? (
-              <p className="small">No student preview is available for this revision.</p>
-            ) : (
-              <div className="space-y-3 text-sm">
-                <p className="text-lg font-bold leading-6 tracking-tight text-pq-ink-strong">{studentPreview.data.revision.stem}</p>
-                <ol className="space-y-2">
-                  {studentPreview.data.options.map((option) => (
-                    <li key={option.label}>
-                      <span className="optkey !inline-grid !mr-2">{option.label}</span>
-                      <span>{option.content}</span>
-                    </li>
-                  ))}
-                </ol>
-                {studentPreview.data.explanationBlocks.map((block) => (
-                  <p key={block.id} className="whitespace-pre-line">{typeof block.content === "string" ? block.content : Array.isArray(block.content) ? block.content.join("\n") : JSON.stringify(block.content)}</p>
-                ))}
-                {studentPreview.data.references.length > 0 && (
-                  <ol className="list-decimal space-y-1 pl-5">
-                    {studentPreview.data.references.map((reference, index) => (
-                      <li key={reference.id ?? index}><a href={reference.sourceUrl} target="_blank" rel="noreferrer">{reference.sourceTitle}</a></li>
-                    ))}
-                  </ol>
-                )}
-              </div>
-            )}
-          </Card>
-        )}
-        <MediaUploader />
-      </aside>
     </div>
   );
 }
@@ -214,4 +203,31 @@ function BlockImage({ asset }: { asset?: MediaAsset }) {
       </p>
     </div>
   );
+}
+
+function OtherOptionsBuilder({ value, onChange }: { value: OtherOption[]; onChange: (value: OtherOption[]) => void }) {
+  const update = (index: number, patch: Partial<OtherOption>) => onChange(value.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item));
+  return <div className="other-options-builder"><p className="hint">Choose the wrong option, write the option text on the left, and explain why it is wrong on the right. The “Why other options are wrong” heading is added automatically.</p>{value.map((item, index) => <div className="other-option-row" key={`${index}-${item.option}`}><select className="inp other-option-select" aria-label={`Wrong option ${index + 1}`} value={item.option} onChange={(event) => update(index, { option: event.target.value as OtherOption["option"] })}><option value="A">Option A</option><option value="B">Option B</option><option value="C">Option C</option><option value="D">Option D</option></select><Input className="other-option-title" value={item.title} placeholder="Wrong option text" aria-label={`Wrong option ${index + 1} text`} onChange={(event) => update(index, { title: event.target.value })} /><textarea className="inp other-option-explanation" rows={2} value={item.explanation} placeholder="Why this option is wrong…" aria-label={`Explanation for option ${item.option}`} onChange={(event) => update(index, { explanation: event.target.value })} /><button type="button" className="btn sm" aria-label={`Remove option ${item.option}`} onClick={() => onChange(value.filter((_, itemIndex) => itemIndex !== index))}>Remove</button></div>)}<button type="button" className="btn sm" disabled={value.length >= 4} onClick={() => onChange([...value, { option: (["A", "B", "C", "D"] as const).find((option) => !value.some((item) => item.option === option)) ?? "A", title: "", explanation: "" }])}><Plus className="size-3.5" aria-hidden="true" /> Add wrong option</button></div>;
+}
+
+function TableBuilderDialog({ initial, onClose, onSave }: { initial: { headers: string[]; rows: string[][] }; onClose: () => void; onSave: (content: { headers: string[]; rows: string[][] }) => void }) {
+  const [rowCount, setRowCount] = useState(Math.max(1, initial.rows.length));
+  const [columnCount, setColumnCount] = useState(Math.max(1, initial.headers.length));
+  const [grid, setGrid] = useState<string[][]>(() => [initial.headers, ...initial.rows]);
+  const resize = (rows: number, columns: number) => {
+    setRowCount(rows); setColumnCount(columns);
+    setGrid(Array.from({ length: rows + 1 }, (_, row) => Array.from({ length: columns }, (_, column) => grid[row]?.[column] ?? "")));
+  };
+  const update = (row: number, column: number, value: string) => setGrid((current) => current.map((cells, rowIndex) => rowIndex === row ? cells.map((cell, columnIndex) => columnIndex === column ? value : cell) : cells));
+  return <div className="media-dialog-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <section className="media-dialog table-builder-dialog" role="dialog" aria-modal="true" aria-labelledby="table-builder-title">
+      <div className="media-dialog-head"><div><p className="eyebrow">Explanation table</p><h2 id="table-builder-title">Build a table</h2></div><button type="button" className="btn-icon" aria-label="Close table builder" onClick={onClose}>×</button></div>
+      <div className="media-dialog-body table-builder-body">
+        <div className="row"><Field label="Body rows" className="flex-1"><Input type="number" min={1} max={20} value={rowCount} onChange={(event) => resize(Math.min(20, Math.max(1, Number(event.target.value) || 1)), columnCount)} /></Field><Field label="Columns" className="flex-1"><Input type="number" min={1} max={10} value={columnCount} onChange={(event) => resize(rowCount, Math.min(10, Math.max(1, Number(event.target.value) || 1)))} /></Field></div>
+        <p className="hint">The first row is the header. The remaining rows are table data.</p>
+        <div className="table-builder-grid" style={{ gridTemplateColumns: `repeat(${columnCount}, minmax(120px, 1fr))` }}>{grid.map((row, rowIndex) => row.map((cell, columnIndex) => <Input key={`${rowIndex}-${columnIndex}`} aria-label={`${rowIndex === 0 ? "Header" : `Row ${rowIndex}`} column ${columnIndex + 1}`} value={cell} placeholder={rowIndex === 0 ? `Header ${columnIndex + 1}` : `Cell ${rowIndex}, ${columnIndex + 1}`} onChange={(event) => update(rowIndex, columnIndex, event.target.value)} />))}</div>
+        <div className="addrow"><button type="button" className="btn" onClick={onClose}>Cancel</button><button type="button" className="btn pri" onClick={() => onSave({ headers: grid[0] ?? [], rows: grid.slice(1) })}>Use table</button></div>
+      </div>
+    </section>
+  </div>;
 }
