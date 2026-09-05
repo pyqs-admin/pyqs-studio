@@ -1,0 +1,13 @@
+import { z } from "zod";
+
+const id = z.string().uuid();
+const comment = z.string().trim().min(1).max(10_000);
+export const questionIdParamsSchema = z.object({ questionId: id }).strict();
+export const queueIdParamsSchema = z.object({ queueId: id }).strict();
+export const commentIdParamsSchema = z.object({ commentId: id }).strict();
+export const assignQueueSchema = z.object({ questionId: id, revisionId: id, reviewerProfileId: id, position: z.number().int().min(0).optional() }).strict();
+export const requestChangesSchema = z.object({ comment }).strict();
+export const addCommentSchema = z.object({ body: comment, revisionId: id.optional(), parentCommentId: id.optional() }).strict();
+export const updateCommentSchema = z.object({ body: comment }).strict();
+export type AssignQueue = z.infer<typeof assignQueueSchema>;
+export type AddComment = z.infer<typeof addCommentSchema>;
