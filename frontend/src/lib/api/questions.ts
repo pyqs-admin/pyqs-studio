@@ -1,4 +1,5 @@
-import { studioFetch } from "./client";
+import { createQuestion as createQuestionAction, createQuestionRevision as createQuestionRevisionAction, duplicateQuestion as duplicateQuestionAction, getQuestion as getQuestionAction, listQuestionAudit, listQuestionContributors, listQuestionRevisions, saveQuestionDraft as saveQuestionDraftAction, submitQuestion as submitQuestionAction, validateQuestionRevision as validateQuestionRevisionAction } from "@/actions/questions";
+import { callAction } from "./client";
 
 export type QuestionOption = { id?: string; label: "A" | "B" | "C" | "D"; content: string; mediaAssetId?: string | null; position?: number };
 export type SecondaryTopic = { topicId: string; role: "DISEASE" | "MECHANISM" | "DIAGNOSIS" | "MANAGEMENT" | "ASSOCIATION" | "COMPLICATION" | "OTHER" };
@@ -9,13 +10,13 @@ export type ValidationResult = { valid: boolean; errors: { field: string; messag
 export type Contributor = { contributor: { id: string; contributionType: string; createdAt: string }; profile: { id: string; displayName: string; email: string } };
 export type AuditEntry = { audit: { id: string; action: string; createdAt: string }; actor: { id: string; displayName: string; email: string } };
 
-export const createQuestion = (projectId: string, subjectId: string, body: QuestionDraft) => studioFetch<QuestionDetails>(`/projects/${projectId}/subjects/${subjectId}/questions`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-export const getQuestion = (questionId: string) => studioFetch<QuestionDetails>(`/questions/${questionId}`);
-export const getQuestionRevisions = (questionId: string) => studioFetch<Revision[]>(`/questions/${questionId}/revisions`);
-export const saveQuestionDraft = (questionId: string, revisionId: string, body: QuestionDraft) => studioFetch<QuestionDetails["revision"]>(`/questions/${questionId}/revisions/${revisionId}/draft`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-export const createQuestionRevision = (questionId: string) => studioFetch<Revision>(`/questions/${questionId}/revisions`, { method: "POST" });
-export const validateQuestionRevision = (revisionId: string) => studioFetch<ValidationResult>(`/question-revisions/${revisionId}/validate`, { method: "POST" });
-export const submitQuestion = (questionId: string) => studioFetch<unknown>(`/questions/${questionId}/submit`, { method: "POST" });
-export const duplicateQuestion = (questionId: string) => studioFetch<QuestionDetails>(`/questions/${questionId}/duplicate`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
-export const getQuestionContributors = (questionId: string) => studioFetch<Contributor[]>(`/questions/${questionId}/contributors`);
-export const getQuestionAudit = (questionId: string) => studioFetch<AuditEntry[]>(`/questions/${questionId}/audit-log`);
+export const createQuestion = (projectId: string, subjectId: string, body: QuestionDraft) => callAction<QuestionDetails>(createQuestionAction(projectId, subjectId, body));
+export const getQuestion = (questionId: string) => callAction<QuestionDetails>(getQuestionAction(questionId));
+export const getQuestionRevisions = (questionId: string) => callAction<Revision[]>(listQuestionRevisions(questionId));
+export const saveQuestionDraft = (questionId: string, revisionId: string, body: QuestionDraft) => callAction<QuestionDetails["revision"]>(saveQuestionDraftAction(questionId, revisionId, body));
+export const createQuestionRevision = (questionId: string) => callAction<Revision>(createQuestionRevisionAction(questionId));
+export const validateQuestionRevision = (revisionId: string) => callAction<ValidationResult>(validateQuestionRevisionAction(revisionId));
+export const submitQuestion = (questionId: string) => callAction<unknown>(submitQuestionAction(questionId));
+export const duplicateQuestion = (questionId: string) => callAction<QuestionDetails>(duplicateQuestionAction(questionId, {}));
+export const getQuestionContributors = (questionId: string) => callAction<Contributor[]>(listQuestionContributors(questionId));
+export const getQuestionAudit = (questionId: string) => callAction<AuditEntry[]>(listQuestionAudit(questionId));

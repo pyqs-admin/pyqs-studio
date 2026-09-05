@@ -1,5 +1,6 @@
 export type ApiSuccess<T> = { success: true; data: T };
-export type ApiFailure = { success: false; code: string; message: string; details?: unknown };
+export type ApiFailure = { success: false; code: string; message: string; status?: number; details?: unknown };
+export type ApiResult<T> = ApiSuccess<T> | ApiFailure;
 export type StudioSession = { profileId: string; email: string; displayName: string; roles: string[]; permissions: string[] };
 
 export class StudioApiError extends Error {
