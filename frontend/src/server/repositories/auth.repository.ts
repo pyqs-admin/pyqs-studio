@@ -1,0 +1,74 @@
+import { asc, eq, ilike } from "drizzle-orm";
+
+import { db } from "@/server/db/client";
+import {
+  studioPermission,
+  studioProfile,
+  studioProfilePermission,
+  studioProfileRole,
+  studioRole,
+  studioRolePermission,
+} from "@/server/db/schema";
+
+export interface StudioProfileRecord {
+  id: string;
+  email: string;
+  displayName: string;
+  status: string;
+}
+
+export class AuthRepository {
+  async listProfiles(query?: string) {
+    return db
+      .select({ id: studioProfile.id, email: studioProfile.email, displayName: studioProfile.displayName, status: studioProfile.status })
+      .from(studioProfile)
+      .where(query ? ilike(studioProfile.displayName, `%${query}%`) : undefined)
+      .orderBy(asc(studioProfile.displayName))
+      .limit(50);
+  }
+
+  async findProfileById(profileId: string): Promise<StudioProfileRecord | null> {
+    const [profile] = await db
+      .select({
+        id: studioProfile.id,
+        email: studioProfile.email,
+        displayName: studioProfile.displayName,
+        status: studioProfile.status,
+      })
+      .from(studioProfile)
+      .where(eq(studioProfile.id, profileId))
+      .limit(1);
+
+    return profile ?? null;
+  }
+
+  async findRoleCodes(profileId: string): Promise<string[]> {
+    const rows = await db
+      .select({ code: studioRole.code })
+      .from(studioProfileRole)
+      .innerJoin(studioRole, eq(studioProfileRole.roleId, studioRole.id))
+      .where(eq(studioProfileRole.profileId, profileId));
+
+    return rows.map((row) => row.code).sort();
+  }
+
+  async findPermissionCodes(profileId: string): Promise<string[]> {
+    const [roleRows, directRows] = await Promise.all([
+      db
+        .select({ code: studioPermission.code })
+        .from(studioProfileRole)
+        .innerJoin(studioRolePermission, eq(studioProfileRole.roleId, studioRolePermission.roleId))
+        .innerJoin(studioPermission, eq(studioRolePermission.permissionId, studioPermission.id))
+        .where(eq(studioProfileRole.profileId, profileId)),
+      db
+        .select({ code: studioPermission.code })
+        .from(studioProfilePermission)
+        .innerJoin(studioPermission, eq(studioProfilePermission.permissionId, studioPermission.id))
+        .where(eq(studioProfilePermission.profileId, profileId)),
+    ]);
+
+    return Array.from(new Set([...roleRows, ...directRows].map((row) => row.code))).sort();
+  }
+}
+
+export const authRepository = new AuthRepository();
