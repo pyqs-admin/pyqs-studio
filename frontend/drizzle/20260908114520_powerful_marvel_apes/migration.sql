@@ -1,0 +1,3 @@
+ALTER TABLE "studio_question_option" ADD COLUMN "media_asset_id" uuid;--> statement-breakpoint
+ALTER TABLE "studio_question_revision" ADD COLUMN "stem_media_asset_ids" jsonb DEFAULT '[]' NOT NULL;--> statement-breakpoint
+ALTER TABLE "studio_question_option" ADD CONSTRAINT "studio_question_option_5hjFsI3UzOHW_fkey" FOREIGN KEY ("media_asset_id") REFERENCES "studio_media_asset"("id") ON DELETE RESTRICT;
