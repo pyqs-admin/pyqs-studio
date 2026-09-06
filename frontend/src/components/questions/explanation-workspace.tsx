@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, Check, ChevronDown, Eye, Plus, Save, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, ChevronDown, ClipboardCheck, ClipboardCopy, Eye, Plus, Save, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
@@ -38,6 +38,31 @@ const tableShape = (content: unknown) => {
   }
   return { headers: [""], rows: [[""]] };
 };
+const isSeparatorRow = (cells: string[]) => cells.length > 0 && cells.every((cell) => /^:?-{3,}:?$/.test(cell.trim()));
+const parseMarkdownTable = (input: string): { headers: string[]; rows: string[][] } | null => {
+  const lines = input.trim().split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  if (lines.length < 2) return null;
+  const splitRow = (line: string) => line.replace(/^\s*\|/, "").replace(/\|\s*$/, "").split("|").map((cell) => cell.trim());
+  const headers = splitRow(lines[0]);
+  if (!headers.length || headers.every((cell) => !cell)) return null;
+  const body = isSeparatorRow(splitRow(lines[1])) ? lines.slice(2) : lines.slice(1);
+  const rows = body.map(splitRow);
+  return { headers, rows };
+};
+const TABLE_PROMPT = `Generate a comparison table for a medical question explanation.
+
+Output ONLY a GitHub-flavored Markdown table — no prose, no headings, no code fence, no extra text:
+
+| Column 1 | Column 2 | Column 3 |
+| --- | --- | --- |
+| value | value | value |
+
+Rules:
+- The first line is the header row.
+- The second line is the separator row (| --- | --- | repeated once per column).
+- Every following line is a data row.
+- Keep each cell concise; use <br> to break lines within a cell.
+- Keep the same number of columns in every row.`;
 
 export function ExplanationWorkspace({ revisionId, previewHref }: { revisionId: string; previewHref?: string }) {
   const queryClient = useQueryClient();
@@ -154,11 +179,7 @@ export function ExplanationWorkspace({ revisionId, previewHref }: { revisionId: 
                 ) : block.blockType === "other_options" ? (
                   <OtherOptionsBuilder value={otherOptionsShape(block.content)} onChange={(content) => updateBlock(index, { content })} />
                 ) : block.blockType === "table" ? (
-                  <div className="table-builder-launch">
-                    <p className="hint">Build a table by choosing its dimensions and filling each cell. It will be converted to a PYQS-compatible Markdown table.</p>
-                    <button type="button" className="btn sm" onClick={() => setTableEditorIndex(index)}>Open table builder</button>
-                    {typeof block.content === "object" && block.content !== null && <span className="small">{tableShape(block.content).headers.length} columns · {tableShape(block.content).rows.length} rows</span>}
-                  </div>
+                  <TableBlockBody content={block.content} onOpenBuilder={() => setTableEditorIndex(index)} onChange={(content) => updateBlock(index, { content })} />
                 ) : (
                   <textarea
                     className="inp"
@@ -229,6 +250,69 @@ function BlockImage({ asset }: { asset?: MediaAsset }) {
 function OtherOptionsBuilder({ value, onChange }: { value: OtherOption[]; onChange: (value: OtherOption[]) => void }) {
   const update = (index: number, patch: Partial<OtherOption>) => onChange(value.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item));
   return <div className="other-options-builder"><p className="hint">Choose the wrong option, write the option text on the left, and explain why it is wrong on the right. The “Why other options are wrong” heading is added automatically.</p>{value.map((item, index) => <div className="other-option-row" key={`${index}-${item.option}`}><select className="inp other-option-select" aria-label={`Wrong option ${index + 1}`} value={item.option} onChange={(event) => update(index, { option: event.target.value as OtherOption["option"] })}><option value="A">Option A</option><option value="B">Option B</option><option value="C">Option C</option><option value="D">Option D</option></select><Input className="other-option-title" value={item.title} placeholder="Wrong option text" aria-label={`Wrong option ${index + 1} text`} onChange={(event) => update(index, { title: event.target.value })} /><textarea className="inp other-option-explanation" rows={2} value={item.explanation} placeholder="Why this option is wrong…" aria-label={`Explanation for option ${item.option}`} onChange={(event) => update(index, { explanation: event.target.value })} /><button type="button" className="btn sm" aria-label={`Remove option ${item.option}`} onClick={() => onChange(value.filter((_, itemIndex) => itemIndex !== index))}>Remove</button></div>)}<button type="button" className="btn sm" disabled={value.length >= 4} onClick={() => onChange([...value, { option: (["A", "B", "C", "D"] as const).find((option) => !value.some((item) => item.option === option)) ?? "A", title: "", explanation: "" }])}><Plus className="size-3.5" aria-hidden="true" /> Add wrong option</button></div>;
+}
+
+function TableBlockBody({ content, onOpenBuilder, onChange }: { content: unknown; onOpenBuilder: () => void; onChange: (content: { headers: string[]; rows: string[][] }) => void }) {
+  const [pasteOpen, setPasteOpen] = useState(false);
+  const [pasteText, setPasteText] = useState("");
+  const [pasteError, setPasteError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const shape = tableShape(content);
+  const hasTable = shape.headers.some((cell) => cell.trim()) || shape.rows.some((row) => row.some((cell) => cell.trim()));
+
+  const applyPaste = () => {
+    const parsed = parseMarkdownTable(pasteText);
+    if (!parsed) {
+      setPasteError("Couldn't read a table from that text. Paste a Markdown table with a header row and a | --- | separator row.");
+      return;
+    }
+    onChange(parsed);
+    setPasteText("");
+    setPasteError(null);
+    setPasteOpen(false);
+  };
+
+  const copyPrompt = async () => {
+    try {
+      await navigator.clipboard.writeText(TABLE_PROMPT);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
+    } catch {
+      setCopied(false);
+    }
+  };
+
+  return (
+    <div className="space-y-2.5">
+      <div className="table-builder-launch">
+        <p className="hint">Build a table cell by cell, paste it as Markdown, or copy a prompt for an LLM to generate it in the correct format.</p>
+        <button type="button" className="btn sm" onClick={onOpenBuilder}>Open table builder</button>
+        <button type="button" className="btn sm" onClick={() => setPasteOpen((value) => !value)} aria-expanded={pasteOpen}>Paste Markdown table</button>
+        <button type="button" className="btn sm" onClick={copyPrompt}>
+          {copied ? <ClipboardCheck className="size-3.5" aria-hidden="true" /> : <ClipboardCopy className="size-3.5" aria-hidden="true" />}
+          {copied ? "Prompt copied" : "Copy LLM prompt"}
+        </button>
+        {hasTable && <span className="small">{shape.headers.length} columns · {shape.rows.length} rows</span>}
+      </div>
+      {pasteOpen && (
+        <div className="space-y-2">
+          <textarea
+            className="inp"
+            rows={6}
+            value={pasteText}
+            placeholder={"Paste a Markdown table, e.g.\n| Column 1 | Column 2 |\n| --- | --- |\n| A | B |"}
+            aria-label="Paste Markdown table"
+            onChange={(event) => { setPasteText(event.target.value); setPasteError(null); }}
+          />
+          {pasteError && <p className="small text-[var(--pq-danger)]">{pasteError}</p>}
+          <div className="flex gap-2">
+            <button type="button" className="btn sm pri" onClick={applyPaste}>Parse &amp; apply</button>
+            <button type="button" className="btn sm" onClick={() => { setPasteOpen(false); setPasteText(""); setPasteError(null); }}>Cancel</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function TableBuilderDialog({ initial, onClose, onSave }: { initial: { headers: string[]; rows: string[][] }; onClose: () => void; onSave: (content: { headers: string[]; rows: string[][] }) => void }) {
