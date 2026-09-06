@@ -18,6 +18,7 @@ import {
   getExplanation,
   getMedia,
   getReferences,
+  registerExternalImage,
   replaceExplanation,
   replaceReferences,
   type ExplanationBlock,
@@ -167,15 +168,7 @@ export function ExplanationWorkspace({ revisionId, previewHref }: { revisionId: 
               </div>
               <div className="blk-b">
                 {block.blockType === "image" ? (
-                  <>
-                    <select className="inp" aria-label="Media asset" value={block.mediaAssetId ?? ""} onChange={(event) => updateBlock(index, { mediaAssetId: event.target.value || null })}>
-                      <option value="">Choose a picture…</option>
-                      {media.data?.map((asset) => (
-                        <option key={asset.id} value={asset.id}>{asset.fileName}</option>
-                      ))}
-                    </select>
-                    {block.mediaAssetId && <BlockImage asset={media.data?.find((asset) => asset.id === block.mediaAssetId)} />}
-                  </>
+                  <ImageBlockBody media={media.data ?? []} mediaAssetId={block.mediaAssetId} onChange={(mediaAssetId) => updateBlock(index, { mediaAssetId })} />
                 ) : block.blockType === "other_options" ? (
                   <OtherOptionsBuilder value={otherOptionsShape(block.content)} onChange={(content) => updateBlock(index, { content })} />
                 ) : block.blockType === "table" ? (
@@ -243,6 +236,76 @@ function BlockImage({ asset }: { asset?: MediaAsset }) {
         {asset.caption || asset.fileName}
         {asset.license !== "unverified" ? ` — ${asset.license}` : <span className="miss"> source and licence not set</span>}
       </p>
+    </div>
+  );
+}
+
+function ImageBlockBody({ media, mediaAssetId, onChange }: { media: MediaAsset[]; mediaAssetId: string | null; onChange: (mediaAssetId: string | null) => void }) {
+  const queryClient = useQueryClient();
+  const [pasteOpen, setPasteOpen] = useState(false);
+  const [registered, setRegistered] = useState<MediaAsset[]>([]);
+  const [values, setValues] = useState({ imageUrl: "", sourceUrl: "", license: "", altText: "", caption: "" });
+  const [error, setError] = useState("");
+  const set = (key: keyof typeof values, value: string) => setValues((current) => ({ ...current, [key]: value }));
+
+  const register = useMutation({
+    mutationFn: () => {
+      const fileUrl = values.imageUrl.trim();
+      const sourceUrl = values.sourceUrl.trim() || fileUrl;
+      if (!fileUrl || !sourceUrl || !values.license || !values.altText) throw new Error("Complete the image URL, source link, licence, and alt text fields.");
+      return registerExternalImage({ fileUrl, sourceUrl, license: values.license, altText: values.altText, caption: values.caption || undefined, annotated: "no" });
+    },
+    onSuccess: (asset) => {
+      setRegistered((current) => [...current, asset]);
+      onChange(asset.id);
+      setValues({ imageUrl: "", sourceUrl: "", license: "", altText: "", caption: "" });
+      setError("");
+      setPasteOpen(false);
+      void queryClient.invalidateQueries({ queryKey: ["media"] });
+    },
+    onError: (cause) => setError(cause instanceof Error ? cause.message : "The image could not be registered."),
+  });
+
+  const selected = media.find((asset) => asset.id === mediaAssetId) ?? registered.find((asset) => asset.id === mediaAssetId);
+
+  return (
+    <div className="space-y-2.5">
+      <select className="inp" aria-label="Media asset" value={mediaAssetId ?? ""} onChange={(event) => onChange(event.target.value || null)}>
+        <option value="">Choose a picture…</option>
+        {media.map((asset) => (
+          <option key={asset.id} value={asset.id}>{asset.fileName}</option>
+        ))}
+      </select>
+      {selected && <BlockImage asset={selected} />}
+      <button type="button" className="btn sm" onClick={() => setPasteOpen((value) => !value)} aria-expanded={pasteOpen}>Paste image URL</button>
+      {pasteOpen && (
+        <div className="space-y-2 rounded-[var(--pq-r-md)] border-2 border-[var(--pq-line-soft)] p-3">
+          <Field label="Image URL" required>
+            <Input value={values.imageUrl} onChange={(event) => set("imageUrl", event.target.value)} placeholder="https://… (direct link to a JPEG, PNG, or WebP)" />
+          </Field>
+          <div className="row">
+            <Field label="Source URL" required className="flex-1 basis-52">
+              <Input value={values.sourceUrl} onChange={(event) => set("sourceUrl", event.target.value)} placeholder="Page the image came from" />
+            </Field>
+            <Field label="Licence" required className="flex-1 basis-40">
+              <Input value={values.license} onChange={(event) => set("license", event.target.value)} placeholder="e.g. CC BY-SA 4.0" />
+            </Field>
+          </div>
+          <div className="row">
+            <Field label="Alt text" required className="flex-1 basis-52">
+              <Input value={values.altText} onChange={(event) => set("altText", event.target.value)} placeholder="Describe what the image shows" />
+            </Field>
+            <Field label="Caption" className="flex-1 basis-52">
+              <Input value={values.caption} onChange={(event) => set("caption", event.target.value)} />
+            </Field>
+          </div>
+          {error && <p className="err">{error}</p>}
+          <div className="flex gap-2">
+            <button type="button" className="btn sm pri" onClick={() => register.mutate()} disabled={register.isPending}>{register.isPending ? "Importing…" : "Register & use image"}</button>
+            <button type="button" className="btn sm" onClick={() => { setPasteOpen(false); setError(""); }}>Cancel</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
