@@ -1,4 +1,4 @@
-import { createMediaUploadUrl, getMedia as getMediaAction, registerMedia } from "@/actions/media";
+import { createMediaUploadUrl, getMedia as getMediaAction, registerExternalMedia, registerMedia } from "@/actions/media";
 import { getExplanation as getExplanationAction, getReferences as getReferencesAction, replaceExplanation as replaceExplanationAction, replaceReferences as replaceReferencesAction } from "@/actions/explanations";
 import { getStudentPreview as getStudentPreviewAction } from "@/actions/publish";
 import { getBrowserEnv } from "@/lib/env";
@@ -20,6 +20,10 @@ export async function uploadMedia(file: File, metadata: { sourceUrl: string; sou
   if (!response.ok) throw new Error("The media file could not be uploaded.");
   const publicPath = upload.storagePath.split("/").map(encodeURIComponent).join("/");
   return callAction<MediaAsset>(registerMedia({ ...metadata, storagePath: upload.storagePath, fileName: file.name, mimeType: file.type, byteSize: file.size, fileUrl: `${getBrowserEnv().NEXT_PUBLIC_STUDIO_SUPABASE_URL}/storage/v1/object/public/${upload.bucket}/${publicPath}`, verificationStatus: "unverified" }));
+}
+
+export function registerExternalImage(metadata: { fileUrl: string; sourceUrl: string; sourceTitle?: string; creator?: string; license: string; attribution?: string; caption?: string; altText: string; annotated: "yes" | "no" }) {
+  return callAction<MediaAsset>(registerExternalMedia(metadata));
 }
 
 export const getStudentPreview = (revisionId: string) => callAction<{ question: { id: string; publicQid: string; questionNumber?: number }; project?: { name: string }; exam?: { name: string; code?: string }; subject?: { name: string }; chapter?: { name: string }; topic?: { name: string }; revision: { stem: string; correctOption: string }; options: { label: string; content: string }[]; explanationBlocks: ExplanationBlock[]; references: Reference[] }>(getStudentPreviewAction(revisionId));
