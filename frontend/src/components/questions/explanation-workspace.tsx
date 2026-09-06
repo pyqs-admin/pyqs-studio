@@ -1,10 +1,16 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, Eye, Plus, Save, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, ChevronDown, Eye, Plus, Save, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { MediaUploader } from "@/components/questions/media-uploader";
@@ -92,19 +98,34 @@ export function ExplanationWorkspace({ revisionId, previewHref }: { revisionId: 
           {currentBlocks.map((block, index) => (
             <div className="blk" key={block.id}>
               <div className="blk-h">
-                <select
-                  value={block.blockType}
-                  className="inp !w-auto !min-h-0 !border-0 !bg-transparent !px-1 !py-0.5 !text-[11px] !font-bold !uppercase !tracking-widest"
-                  aria-label="Block type"
-                  onChange={(event) => {
-                    const type = event.target.value as ExplanationBlock["blockType"];
-                    updateBlock(index, { blockType: type, content: isList(type) ? (isList(block.blockType) ? block.content : []) : isList(block.blockType) ? "" : block.content });
-                  }}
-                >
-                  {blockTypes.map((type) => (
-                    <option key={type} value={type}>{type.replaceAll("_", " ")}</option>
-                  ))}
-                </select>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className="flex cursor-pointer items-center gap-1 rounded-[var(--pq-r-sm)] px-1 py-0.5 transition-colors hover:text-[var(--pq-ink)] focus-visible:outline-none"
+                      aria-label="Block type"
+                    >
+                      {block.blockType.replaceAll("_", " ")}
+                      <ChevronDown className="size-3.5 shrink-0" aria-hidden="true" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" side="bottom" className="min-w-[220px]">
+                    {blockTypes.map((type) => (
+                      <DropdownMenuItem
+                        key={type}
+                        onSelect={() => {
+                          updateBlock(index, {
+                            blockType: type,
+                            content: isList(type) ? (isList(block.blockType) ? block.content : []) : isList(block.blockType) ? "" : block.content,
+                          });
+                        }}
+                      >
+                        <span>{type.replaceAll("_", " ")}</span>
+                        {type === block.blockType && <Check className="ml-auto text-[var(--pq-blue)]" aria-hidden="true" />}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <span className="grow" />
                 <button type="button" className="btn-icon !h-7 !w-7" aria-label="Move block up" onClick={() => move(index, -1)} disabled={index === 0}>
                   <ArrowUp className="size-3.5" />
