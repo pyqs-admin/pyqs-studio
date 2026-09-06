@@ -5,7 +5,7 @@ import { Check, ImagePlus, Upload, X } from "lucide-react";
 import { useState } from "react";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { getMedia, uploadMedia, type MediaAsset } from "@/lib/api/explanations";
+import { getMedia, registerExternalImage, uploadMedia, type MediaAsset } from "@/lib/api/explanations";
 import { useQuery } from "@tanstack/react-query";
 
 const empty = { sourceUrl: "", creator: "", license: "", attribution: "", caption: "", altText: "", annotated: "no" as "yes" | "no" };
@@ -16,16 +16,23 @@ export function MediaUploader({ onSelect, label = "Media library" }: { onSelect?
   const media = useQuery({ queryKey: ["media"], queryFn: getMedia });
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
+  const [externalUrl, setExternalUrl] = useState("");
   const [values, setValues] = useState<MediaValues>(empty);
+  const isUrl = Boolean(externalUrl.trim());
   const mutation = useMutation({
     mutationFn: () => {
-      if (!file) throw new Error("Choose an image to upload.");
-      return uploadMedia(file, values);
+      const imageUrl = externalUrl.trim();
+      if (!file && !imageUrl) throw new Error("Choose an image to upload or paste an image URL.");
+      if (!values.sourceUrl || !values.license || !values.altText) throw new Error("Source URL, licence, and alt text are required.");
+      if (imageUrl) return registerExternalImage({ fileUrl: imageUrl, sourceUrl: values.sourceUrl || imageUrl, creator: values.creator || undefined, license: values.license, attribution: values.attribution || undefined, caption: values.caption || undefined, altText: values.altText, annotated: values.annotated });
+      return uploadMedia(file!, values);
     },
-    onSuccess: () => {
+    onSuccess: (asset) => {
       setFile(null);
+      setExternalUrl("");
       setValues(empty);
       void queryClient.invalidateQueries({ queryKey: ["media"] });
+      onSelect?.(asset);
     },
   });
   const set = (key: keyof MediaValues, value: string) => setValues((current) => ({ ...current, [key]: value }));
@@ -46,13 +53,14 @@ export function MediaUploader({ onSelect, label = "Media library" }: { onSelect?
           <div className="media-dialog-divider"><span>or</span></div>
           <div>
             <p className="eyebrow">Upload and register</p>
-            <label className="drop"><Upload className="size-5" aria-hidden="true" />{file ? file.name : "Drop a picture here, or click to choose"}<input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(event) => setFile(event.target.files?.[0] ?? null)} /></label>
+            <label className="drop"><Upload className="size-5" aria-hidden="true" />{file ? file.name : "Drop a picture here, or click to choose"}<input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(event) => { setFile(event.target.files?.[0] ?? null); if (event.target.files?.[0]) setExternalUrl(""); }} /></label>
+            <input className="inp mt-2" value={externalUrl} onChange={(event) => { setExternalUrl(event.target.value); if (event.target.value) setFile(null); }} placeholder="…or paste a direct image URL (https://…)" />
             <div className="row mt-3"><Field label="Source URL" className="flex-1 basis-52"><Input value={values.sourceUrl} onChange={(event) => set("sourceUrl", event.target.value)} placeholder="https://…" /></Field><Field label="Creator" className="flex-1 basis-40"><Input value={values.creator} onChange={(event) => set("creator", event.target.value)} /></Field></div>
             <div className="row mt-2"><Field label="Licence" className="flex-1 basis-40"><Input value={values.license} onChange={(event) => set("license", event.target.value)} /></Field><Field label="Attribution" className="flex-1 basis-40"><Input value={values.attribution} onChange={(event) => set("attribution", event.target.value)} /></Field></div>
             <div className="row mt-2"><Field label="Caption" className="flex-1 basis-52"><Input value={values.caption} onChange={(event) => set("caption", event.target.value)} /></Field><Field label="Alt text" className="flex-1 basis-52"><Input value={values.altText} onChange={(event) => set("altText", event.target.value)} placeholder="Descriptive alt text" /></Field></div>
             <label className="fsm mt-3"><input type="checkbox" checked={values.annotated === "yes"} onChange={(event) => set("annotated", event.target.checked ? "yes" : "no")} /> Annotated image</label>
-            <button type="button" className="btn pri !mt-3" disabled={mutation.isPending || !file} onClick={() => mutation.mutate()}><Upload className="size-4" aria-hidden="true" /> {mutation.isPending ? "Uploading…" : "Upload and register"}</button>
-            {mutation.isSuccess && <p className="ok mt-2"><Check className="mr-1 inline size-3.5" />Image uploaded. Choose it from the library.</p>}
+            <button type="button" className="btn pri !mt-3" disabled={mutation.isPending || (!file && !isUrl)} onClick={() => mutation.mutate()}>{isUrl ? <ImagePlus className="size-4" aria-hidden="true" /> : <Upload className="size-4" aria-hidden="true" />} {mutation.isPending ? "Registering…" : isUrl ? "Import image URL" : "Upload and register"}</button>
+            {mutation.isSuccess && <p className="ok mt-2"><Check className="mr-1 inline size-3.5" />Image registered. Choose it from the library.</p>}
             {mutation.isError && <p className="err mt-2">{mutation.error.message}</p>}
           </div>
         </div>
