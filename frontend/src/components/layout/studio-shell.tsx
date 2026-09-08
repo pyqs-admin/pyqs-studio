@@ -38,6 +38,7 @@ export function StudioShell({ children }: Readonly<{ children: React.ReactNode }
     }
   };
 
+  const canManageUsers = Boolean(user.data?.permissions.includes("users.manage"));
   const navigation = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/projects", label: "Projects", icon: FolderKanban },
@@ -45,7 +46,7 @@ export function StudioShell({ children }: Readonly<{ children: React.ReactNode }
     { href: "/review", label: "Review", icon: ClipboardCheck },
     { href: "/publish", label: "Publishing", icon: Send },
     { href: "/taxonomy", label: "Taxonomy index", icon: BookOpen },
-    { href: "/users", label: "Users", icon: Users },
+    ...(canManageUsers ? [{ href: "/users", label: "Users", icon: Users }] : []),
   ];
   const isTaxonomyPage = pathname === "/taxonomy";
   const isQuestionPreview = pathname.startsWith("/questions/") && pathname.endsWith("/preview");
