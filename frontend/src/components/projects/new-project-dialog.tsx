@@ -7,7 +7,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import { Dialog } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -49,47 +49,43 @@ export function NewProjectDialog({ variant = "card" }: { variant?: "card" | "but
           <Plus className="size-4" aria-hidden="true" /> New project
         </Button>
       )}
-      <Dialog
-        open={open}
-        onClose={() => setOpen(false)}
-        title="New project"
-        footer={
-          <>
-            <button type="button" className="btn" onClick={() => setOpen(false)}>
-              Cancel
-            </button>
-            <span className="grow" />
-            <button type="button" className="btn pri" onClick={form.handleSubmit((values) => mutation.mutate(values))} disabled={mutation.isPending || taxonomy.isLoading}>
-              Create project
-            </button>
-          </>
-        }
-      >
-        <p className="hint">Exam, year and session are entered here once. Every question filed in this project inherits them.</p>
-        <Field label="Name" required className="mb-2.5">
-          <Input placeholder="NEET-PG 2026 — Pathology" {...form.register("name")} />
-          {form.formState.errors.name && <p className="err">{form.formState.errors.name.message}</p>}
-        </Field>
-        <Field label="Exam" required className="mb-2.5">
-          <Select {...form.register("examId")}>
-            <option value="">Select an exam…</option>
-            {taxonomy.data?.exams.map((exam) => (
-              <option key={exam.id} value={exam.id}>
-                {exam.name}
-              </option>
-            ))}
-          </Select>
-          {form.formState.errors.examId && <p className="err">{form.formState.errors.examId.message}</p>}
-        </Field>
-        <div className="row mb-2.5">
-          <Field label="Year" required className="flex-1">
-            <Input type="number" {...form.register("year")} />
-          </Field>
-          <Field label="Session" className="flex-1">
-            <Input placeholder="May / Nov" {...form.register("session")} />
-          </Field>
-        </div>
-        {mutation.isError && <p className="err">The project could not be created. Check your permission and try again.</p>}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>New project</DialogTitle>
+            <DialogDescription>Exam, year and session are entered here once. Every question filed in this project inherits them.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2.5 px-5 py-4">
+            <Field label="Name" required>
+              <Input placeholder="NEET-PG 2026 — Pathology" {...form.register("name")} />
+              {form.formState.errors.name && <p className="err">{form.formState.errors.name.message}</p>}
+            </Field>
+            <Field label="Exam" required>
+              <Select {...form.register("examId")}>
+                <option value="">Select an exam…</option>
+                {taxonomy.data?.exams.map((exam) => (
+                  <option key={exam.id} value={exam.id}>
+                    {exam.name}
+                  </option>
+                ))}
+              </Select>
+              {form.formState.errors.examId && <p className="err">{form.formState.errors.examId.message}</p>}
+            </Field>
+            <div className="row">
+              <Field label="Year" required className="flex-1">
+                <Input type="number" {...form.register("year")} />
+              </Field>
+              <Field label="Session" className="flex-1">
+                <Input placeholder="May / Nov" {...form.register("session")} />
+              </Field>
+            </div>
+            {mutation.isError && <p className="err">The project could not be created. Check your permission and try again.</p>}
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button type="button" onClick={form.handleSubmit((values) => mutation.mutate(values))} disabled={mutation.isPending || taxonomy.isLoading}>Create project</Button>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
     </>
   );
