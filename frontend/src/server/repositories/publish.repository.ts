@@ -19,7 +19,15 @@ export class PublishRepository {
     const blocks = blockRows.map(({ block, mediaAsset }) => ({ ...block, mediaAsset }));
     return { ...row, options, questionTypes: types, explanationBlocks: blocks, references };
   }
-  ready() { return db.select({ question: studioQuestion, revision: studioQuestionRevision }).from(studioQuestionRevision).innerJoin(studioQuestion, eq(studioQuestionRevision.questionId, studioQuestion.id)).where(and(eq(studioQuestion.status, "APPROVED"), eq(studioQuestionRevision.status, "APPROVED"))); }
+  ready() {
+    return db.select({ question: studioQuestion, revision: studioQuestionRevision, project: studioProject, exam: taxonomyExam })
+      .from(studioQuestionRevision)
+      .innerJoin(studioQuestion, eq(studioQuestionRevision.questionId, studioQuestion.id))
+      .innerJoin(studioProject, eq(studioQuestion.projectId, studioProject.id))
+      .innerJoin(taxonomyExam, eq(studioProject.examId, taxonomyExam.id))
+      .where(and(eq(studioQuestion.status, "APPROVED"), eq(studioQuestionRevision.status, "APPROVED")))
+      .orderBy(asc(studioProject.name), asc(studioQuestion.questionNumber));
+  }
   async publish(questionId: string, revisionId: string, profileId: string, payload: object) { return db.transaction(async (tx) => { await tx.update(studioQuestionRevision).set({ status: "PUBLISHED" }).where(eq(studioQuestionRevision.id, revisionId)); const [question] = await tx.update(studioQuestion).set({ status: "PUBLISHED", publishedRevisionId: revisionId }).where(eq(studioQuestion.id, questionId)).returning(); const [event] = await tx.insert(studioPublishEvent).values({ questionId, revisionId, eventType: "PUBLISH", payload: publishPayload(payload), createdBy: profileId }).returning(); await tx.insert(studioAuditLog).values({ projectId: question!.projectId, questionId, revisionId, actorProfileId: profileId, action: "question_published", metadata: { eventId: event!.id } }); return event!; }); }
   async unpublish(questionId: string, revisionId: string, profileId: string, payload: object) { return db.transaction(async (tx) => { const [question] = await tx.update(studioQuestion).set({ status: "APPROVED", publishedRevisionId: null }).where(eq(studioQuestion.id, questionId)).returning(); const [event] = await tx.insert(studioPublishEvent).values({ questionId, revisionId, eventType: "UNPUBLISH", payload, createdBy: profileId }).returning(); await tx.insert(studioAuditLog).values({ projectId: question!.projectId, questionId, revisionId, actorProfileId: profileId, action: "question_unpublished", metadata: { eventId: event!.id } }); return event!; }); }
   async markEvent(id: string, status: string, error?: string) { const [event] = await db.update(studioPublishEvent).set({ status, lastError: error, deliveredAt: status === "DELIVERED" ? new Date() : null }).where(eq(studioPublishEvent.id, id)).returning(); return event ?? null; }

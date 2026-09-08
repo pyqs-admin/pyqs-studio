@@ -2,6 +2,7 @@ import { z } from "zod";
 
 const id = z.string().uuid();
 export const questionIdParamsSchema = z.object({ questionId: id }).strict();
+export const projectIdParamsSchema = z.object({ projectId: id }).strict();
 export const revisionIdParamsSchema = z.object({ revisionId: id }).strict();
 export const bulkPublishSchema = z.object({ questionIds: z.array(id).min(1).max(100) }).strict();
 export const publishEventIdParamsSchema = z.object({ eventId: id }).strict();

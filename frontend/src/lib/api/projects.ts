@@ -1,5 +1,5 @@
 import { listUsers } from "@/actions/auth";
-import { getPublishReady, publishQuestion as publishQuestionAction } from "@/actions/publish";
+import { getPublishReady, publishProject as publishProjectAction, publishQuestion as publishQuestionAction } from "@/actions/publish";
 import { addProjectMember as addProjectMemberAction, createProject as createProjectAction, getProject as getProjectAction, listProjectMembers as listProjectMembersAction, listProjects, updateProject as updateProjectAction } from "@/actions/projects";
 import { listQuestions } from "@/actions/questions";
 import { getReviewQueue as getReviewQueueAction } from "@/actions/review";
@@ -33,7 +33,7 @@ export type ProjectMember = { member: { id: string; projectRole: string; status:
 export type QuestionRow = { question: { id: string; publicQid: string; questionNumber: number; status: string; projectId: string; createdBy: string }; revision: { id: string; stem: string; subjectId: string; topicId: string; chapterId: string } };
 export type ReviewQueueItem = { item: { id: string; status: string }; question: { id: string }; revision: { id: string } };
 export type StudioProfile = { id: string; displayName: string; email: string; status: string };
-export type PublishReadyItem = { question: { id: string; publicQid: string; status: string }; revision: { id: string; revisionNumber: number; status: string; stem: string } };
+export type PublishReadyItem = { question: { id: string; publicQid: string; status: string; projectId: string }; revision: { id: string; revisionNumber: number; status: string; stem: string }; project: Project; exam: TaxonomyItem };
 
 export const getProjects = () => callAction<ProjectListItem[]>(listProjects());
 export const getProject = (projectId: string) => callAction<ProjectDetails>(getProjectAction(projectId));
@@ -45,5 +45,6 @@ export const createProject = (body: { name: string; examId: string; year: number
 export const getStudioUsers = () => callAction<StudioProfile[]>(listUsers());
 export const getPublishReadyQuestions = () => callAction<PublishReadyItem[]>(getPublishReady());
 export const publishQuestion = (questionId: string) => callAction<unknown>(publishQuestionAction(questionId));
+export const publishProject = (projectId: string) => callAction<Array<{ questionId: string; event?: unknown; error?: { code: string; message: string } }>>(publishProjectAction(projectId));
 export const addProjectMember = (projectId: string, body: { profileId: string; projectRole: string }) => callAction<ProjectMember>(addProjectMemberAction(projectId, body));
 export const updateProject = (projectId: string, body: { name?: string; session?: string | null; status?: "active" | "archived" }) => callAction<Project>(updateProjectAction(projectId, body));

@@ -5,6 +5,7 @@ import { runAction } from "@/server/lib/action-result";
 import { publishService } from "@/server/services/publish.service";
 import {
   bulkPublishSchema,
+  projectIdParamsSchema,
   publishEventIdParamsSchema,
   questionIdParamsSchema,
   revisionIdParamsSchema,
@@ -30,6 +31,14 @@ export async function publishQuestion(questionId: string) {
     const session = await requireUser();
     const params = questionIdParamsSchema.parse({ questionId });
     return publishService.publish(params.questionId, session);
+  });
+}
+
+export async function publishProject(projectId: string) {
+  return runAction(async () => {
+    const session = await requireUser();
+    const params = projectIdParamsSchema.parse({ projectId });
+    return publishService.publishProject(params.projectId, session);
   });
 }
 
