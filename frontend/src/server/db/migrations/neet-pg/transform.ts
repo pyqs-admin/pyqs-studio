@@ -29,8 +29,8 @@ export async function loadSourceBatches(exam: MigrationExam = 'neet-pg'): Promis
   const loaded: SourceBatch[] = [];
   for (const batch of exam === 'neet-pg' ? sourceBatches : upscSourceBatches) {
     const suffix = `${exam === 'upsc-cms' ? 'upsc-cms/' : ''}${batch.set ? `${batch.year}/set-${batch.set}` : `${batch.year}`}`;
-    const module = await import(pathToFileURL(resolve(sourceRoot, suffix, 'index.ts')).href);
-    loaded.push({ ...batch, subjects: module.subjectSeeds as SourceSubject[] });
+    const sourceModule = await import(pathToFileURL(resolve(sourceRoot, suffix, 'index.ts')).href);
+    loaded.push({ ...batch, subjects: sourceModule.subjectSeeds as SourceSubject[] });
   }
   return loaded;
 }

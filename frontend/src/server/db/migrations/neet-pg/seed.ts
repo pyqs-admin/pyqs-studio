@@ -26,7 +26,7 @@ async function main() {
   const subjectByName = new Map(subjectRows.map((row) => [row.name, row]));
   const chapterRows = await db.select().from(taxonomyChapter); const chapterByName = new Map(chapterRows.map((row) => [`${row.subjectId}:${row.name}`, row]));
   const topicRows = await db.select().from(taxonomyTopic); const topicByName = new Map(topicRows.map((row) => [`${row.chapterId}:${row.name}`, row]));
-  let inserted = 0; let existing = 0; let questionNumberByProject = new Map<string, number>();
+  let inserted = 0; let existing = 0; const questionNumberByProject = new Map<string, number>();
   for (let start = 0; start < items.length; start += BATCH_SIZE) {
     const batch = items.slice(start, start + BATCH_SIZE);
     const batchNumber = Math.floor(start / BATCH_SIZE) + 1;
