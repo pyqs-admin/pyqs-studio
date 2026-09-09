@@ -10,13 +10,13 @@ import { ProjectActions } from "@/components/projects/project-actions";
 import { ContentSkeleton, ErrorState } from "@/components/shared/state-panels";
 import { Stat } from "@/components/shared/stat";
 import { StatusBar } from "@/components/shared/status-badge";
-import { getProject, getProjectMembers, getQuestions, getTaxonomy } from "@/lib/api/projects";
+import { getProject, getProjectMembers, getProjectQuestionStats, getTaxonomy } from "@/lib/api/projects";
 
 export default function ProjectPage() {
   const { projectId } = useParams<{ projectId: string }>();
   const project = useQuery({ queryKey: ["projects", projectId], queryFn: () => getProject(projectId) });
   const taxonomy = useQuery({ queryKey: ["taxonomy"], queryFn: getTaxonomy, staleTime: 300_000 });
-  const questions = useQuery({ queryKey: ["questions", { projectId }], queryFn: () => getQuestions({ projectId, limit: 100 }) });
+  const questionStats = useQuery({ queryKey: ["question-stats", projectId], queryFn: () => getProjectQuestionStats(projectId) });
   const members = useQuery({ queryKey: ["projects", projectId, "members"], queryFn: () => getProjectMembers(projectId) });
 
   const actions = useMemo(() => (project.data ? <ProjectActions project={project.data.project} /> : null), [project.data]);
@@ -25,18 +25,18 @@ export default function ProjectPage() {
     actions
   );
 
-  if (project.isLoading || taxonomy.isLoading) return <ContentSkeleton rows={5} />;
-  if (project.isError || taxonomy.isError || !project.data || !taxonomy.data) return <ErrorState description="We couldn't load this project." onRetry={() => { void project.refetch(); void taxonomy.refetch(); }} />;
+  if (project.isLoading || taxonomy.isLoading || questionStats.isLoading) return <ContentSkeleton rows={5} />;
+  if (project.isError || taxonomy.isError || questionStats.isError || !project.data || !taxonomy.data || !questionStats.data) return <ErrorState description="We couldn't load this project." onRetry={() => { void project.refetch(); void taxonomy.refetch(); void questionStats.refetch(); }} />;
 
-  const rows = questions.data ?? [];
+  const stats = questionStats.data ?? [];
   const byStatus: Record<string, number> = {};
-  for (const row of rows) byStatus[row.question.status] = (byStatus[row.question.status] ?? 0) + 1;
+  for (const row of stats) byStatus[row.status] = (byStatus[row.status] ?? 0) + row.count;
   const bySubject = new Map<string, { total: number; statuses: Record<string, number> }>();
-  for (const row of rows) {
-    const entry = bySubject.get(row.revision.subjectId) ?? { total: 0, statuses: {} };
-    entry.total += 1;
-    entry.statuses[row.question.status] = (entry.statuses[row.question.status] ?? 0) + 1;
-    bySubject.set(row.revision.subjectId, entry);
+  for (const row of stats) {
+    const entry = bySubject.get(row.subjectId) ?? { total: 0, statuses: {} };
+    entry.total += row.count;
+    entry.statuses[row.status] = (entry.statuses[row.status] ?? 0) + row.count;
+    bySubject.set(row.subjectId, entry);
   }
 
   return (
@@ -48,7 +48,7 @@ export default function ProjectPage() {
         {project.data.project.status === "archived" && <span className="tag ml-1.5">archived</span>}
       </p>
       <div className="strip">
-        <Stat value={rows.length} label="Questions" />
+        <Stat value={Object.values(byStatus).reduce((total, count) => total + count, 0)} label="Questions" />
         <Stat value={byStatus.NEEDS_EXPLANATION ?? 0} label="Need explaining" tone="warn" />
         <Stat value={byStatus.UNDER_REVIEW ?? 0} label="In review" />
         <Stat value={byStatus.CHANGES_REQUESTED ?? 0} label="Changes requested" tone="bad" />

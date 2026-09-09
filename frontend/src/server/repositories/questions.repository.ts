@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, ilike, inArray, max, or } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, inArray, max, or } from "drizzle-orm";
 
 import { db } from "@/server/db/client";
 import { studioAuditLog, studioProfile, studioProject, studioQuestion, studioQuestionAssignment, studioQuestionContributor, studioQuestionOption, studioQuestionRevision, studioQuestionRevisionType, studioQuestionSecondaryTopic } from "@/server/db/schema";
@@ -51,6 +51,15 @@ export class QuestionsRepository {
       .innerJoin(studioQuestionRevision, and(eq(studioQuestionRevision.questionId, latestRevision.questionId), eq(studioQuestionRevision.revisionNumber, latestRevision.revisionNumber)))
       .leftJoin(studioQuestionAssignment, and(eq(studioQuestionAssignment.questionId, studioQuestion.id), eq(studioQuestionAssignment.assignmentType, "tutor")))
       .where(conditions.length ? and(...conditions) : undefined).orderBy(desc(studioQuestion.updatedAt)).limit(query.limit).offset(query.offset);
+  }
+  async projectStats(projectId: string) {
+    const latestRevision = db.select({ questionId: studioQuestionRevision.questionId, revisionNumber: max(studioQuestionRevision.revisionNumber).as("revision_number") }).from(studioQuestionRevision).groupBy(studioQuestionRevision.questionId).as("latest_revision");
+    return db.select({ subjectId: studioQuestionRevision.subjectId, status: studioQuestion.status, count: count(studioQuestion.id) })
+      .from(studioQuestion)
+      .innerJoin(latestRevision, eq(latestRevision.questionId, studioQuestion.id))
+      .innerJoin(studioQuestionRevision, and(eq(studioQuestionRevision.questionId, latestRevision.questionId), eq(studioQuestionRevision.revisionNumber, latestRevision.revisionNumber)))
+      .where(eq(studioQuestion.projectId, projectId))
+      .groupBy(studioQuestionRevision.subjectId, studioQuestion.status);
   }
   async updateDraft(questionId: string, revisionId: string, input: QuestionDraftInput, profileId: string) {
     return db.transaction(async (tx) => {

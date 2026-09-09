@@ -1,7 +1,7 @@
 import { listUsers } from "@/actions/auth";
 import { getPublishReady, publishProject as publishProjectAction, publishQuestion as publishQuestionAction } from "@/actions/publish";
 import { addProjectMember as addProjectMemberAction, createProject as createProjectAction, getProject as getProjectAction, listProjectMembers as listProjectMembersAction, listProjects, updateProject as updateProjectAction } from "@/actions/projects";
-import { listQuestions } from "@/actions/questions";
+import { getProjectQuestionStats as getProjectQuestionStatsAction, listQuestions } from "@/actions/questions";
 import { getReviewQueue as getReviewQueueAction } from "@/actions/review";
 import { getTaxonomy as getTaxonomyAction } from "@/actions/taxonomy";
 import { callAction } from "./client";
@@ -31,6 +31,7 @@ export type ProjectListItem = { project: Project; exam: TaxonomyItem; memberRole
 export type ProjectDetails = { project: Project; exam: TaxonomyItem };
 export type ProjectMember = { member: { id: string; projectRole: string; status: string; joinedAt: string }; profile: { id: string; displayName: string; email: string; status: string } };
 export type QuestionRow = { question: { id: string; publicQid: string; questionNumber: number; status: string; projectId: string; createdBy: string }; revision: { id: string; stem: string; subjectId: string; topicId: string; chapterId: string } };
+export type ProjectQuestionStat = { subjectId: string; status: string; count: number };
 export type ReviewQueueItem = { item: { id: string; status: string }; question: { id: string }; revision: { id: string } };
 export type StudioProfile = { id: string; displayName: string; email: string; status: string };
 export type PublishReadyItem = { question: { id: string; publicQid: string; status: string; projectId: string }; revision: { id: string; revisionNumber: number; status: string; stem: string }; project: Project; exam: TaxonomyItem };
@@ -40,6 +41,7 @@ export const getProject = (projectId: string) => callAction<ProjectDetails>(getP
 export const getProjectMembers = (projectId: string) => callAction<ProjectMember[]>(listProjectMembersAction(projectId));
 export const getTaxonomy = () => callAction<Taxonomy>(getTaxonomyAction());
 export const getQuestions = (params: Record<string, string | number | undefined>) => callAction<QuestionRow[]>(listQuestions(params));
+export const getProjectQuestionStats = (projectId: string) => callAction<ProjectQuestionStat[]>(getProjectQuestionStatsAction(projectId));
 export const getReviewQueue = () => callAction<ReviewQueueItem[]>(getReviewQueueAction());
 export const createProject = (body: { name: string; examId: string; year: number; session?: string }) => callAction<Project>(createProjectAction(body));
 export const getStudioUsers = () => callAction<StudioProfile[]>(listUsers());
