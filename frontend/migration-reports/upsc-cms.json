@@ -1,0 +1,24 @@
+{
+  "sourceCount": 2160,
+  "generatedCount": 2160,
+  "skippedCount": 0,
+  "duplicateCount": 0,
+  "matchedSubjects": {
+    "Medicine": 862,
+    "Obstetrics & Gynaecology": 360,
+    "Paediatrics": 218,
+    "Community Medicine": 360,
+    "Surgery": 360
+  },
+  "matchedChapters": 729,
+  "matchedTopics": 558,
+  "withoutChapter": 1431,
+  "withoutTopic": 1602,
+  "ambiguousChapters": [],
+  "ambiguousTopics": [],
+  "unmappedQuestionTypes": [],
+  "explanationsOmitted": true,
+  "duplicatePolicy": "publicQid is deterministic per source year/set/subject/ordinal; legitimate repeated content is retained.",
+  "insertedCount": 2160,
+  "existingCount": 0
+}

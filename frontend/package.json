@@ -14,6 +14,10 @@
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "tsx src/server/db/seed.ts",
     "db:seed:taxonomy": "tsx src/server/db/seed-taxonomy.ts",
+    "seed:neet-pg": "tsx src/server/db/migrations/neet-pg/seed.ts",
+    "validate:neet-pg-migration": "tsx src/server/db/migrations/neet-pg/validate.ts",
+    "seed:upsc-cms": "tsx src/server/db/migrations/neet-pg/seed.ts --exam upsc-cms",
+    "validate:upsc-cms-migration": "tsx src/server/db/migrations/neet-pg/validate.ts --exam upsc-cms",
     "db:push": "drizzle-kit push",
     "db:push:preview": "drizzle-kit push --explain --verbose"
   },
