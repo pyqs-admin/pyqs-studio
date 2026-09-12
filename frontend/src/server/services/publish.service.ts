@@ -6,6 +6,7 @@ import type { StudioSession } from "@/lib/api/types";
 import { AppError } from "@/server/lib/AppError";
 import { env } from "@/server/config/env";
 import { questionsService } from "@/server/services/questions.service";
+import { projectsService } from "@/server/services/projects.service";
 import { publishRepository } from "@/server/repositories/publish.repository";
 
 export class PublishService {
@@ -30,6 +31,22 @@ export class PublishService {
     const event = await publishRepository.publish(questionId, preview.revision.id, session.profileId, preview);
     await this.deliver(event.id);
     return event;
+  }
+
+  async publishProject(projectId: string, session: StudioSession) {
+    this.allow(session);
+    await projectsService.get(projectId, session);
+    const items = (await publishRepository.ready()).filter((item) => item.question.projectId === projectId);
+    if (!items.length) throw new AppError({ statusCode: 409, code: "PUBLISH_NOT_READY", message: "No approved questions are ready to publish in this project." });
+    const results: Array<{ questionId: string; event?: unknown; error?: { code: string; message: string } }> = [];
+    for (const item of items) {
+      try {
+        results.push({ questionId: item.question.id, event: await this.publish(item.question.id, session) });
+      } catch (error) {
+        results.push({ questionId: item.question.id, error: error instanceof AppError ? { code: error.code, message: error.message } : { code: "PUBLISH_FAILED", message: "Publish failed." } });
+      }
+    }
+    return results;
   }
 
   async bulk(ids: string[], session: StudioSession) {

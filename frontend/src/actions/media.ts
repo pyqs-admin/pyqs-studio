@@ -7,6 +7,7 @@ import {
   mediaIdParamsSchema,
   mediaListQuerySchema,
   registerMediaSchema,
+  registerExternalMediaSchema,
   updateMediaSchema,
   uploadUrlSchema,
 } from "@/server/schemas/media.schemas";
@@ -22,6 +23,13 @@ export async function registerMedia(input: unknown) {
   return runAction(async () => {
     const session = await requireUser();
     return mediaService.register(registerMediaSchema.parse(input), session);
+  });
+}
+
+export async function registerExternalMedia(input: unknown) {
+  return runAction(async () => {
+    const session = await requireUser();
+    return mediaService.registerExternal(registerExternalMediaSchema.parse(input), session);
   });
 }
 

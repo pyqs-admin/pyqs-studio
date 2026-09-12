@@ -22,6 +22,13 @@ export async function listQuestions(query: unknown) {
   });
 }
 
+export async function getProjectQuestionStats(projectId: string) {
+  return runAction(async () => {
+    const session = await requireUser();
+    return questionsService.projectStats(projectId, session);
+  });
+}
+
 export async function listProjectSubjectQuestions(projectId: string, subjectId: string, query: unknown) {
   return runAction(async () => {
     const session = await requireUser();

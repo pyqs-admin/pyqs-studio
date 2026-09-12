@@ -19,6 +19,10 @@ export class QuestionsService {
     const accessibleProjectIds = session.permissions.includes("question.view_all") ? null : (await projectsService.list(session)).map((row) => row.project.id);
     return questionsRepository.list(query, accessibleProjectIds);
   }
+  async projectStats(projectId: string, session: StudioSession) {
+    await projectsService.get(projectId, session);
+    return questionsRepository.projectStats(projectId);
+  }
 
   async create(projectId: string, subjectId: string, input: QuestionDraftInput, session: StudioSession) {
     if (!session.permissions.includes("question.create")) throw new AppError({ statusCode: 403, code: "PERMISSION_DENIED", message: "You do not have permission to create questions." });
@@ -133,14 +137,14 @@ export class QuestionsService {
 
   private async validateHierarchy(input: QuestionDraftInput) {
     const [chapter, topic, difficulty, questionType, questionType2] = await Promise.all([
-      taxonomyRepository.findChapter(input.chapterId),
-      taxonomyRepository.findTopic(input.topicId),
+      input.chapterId ? taxonomyRepository.findChapter(input.chapterId) : Promise.resolve(null),
+      input.topicId ? taxonomyRepository.findTopic(input.topicId) : Promise.resolve(null),
       taxonomyRepository.findDifficulty(input.difficultyId),
       taxonomyRepository.findQuestionType(input.questionTypeId),
       input.questionType2Id ? taxonomyRepository.findQuestionType(input.questionType2Id) : Promise.resolve(null),
     ]);
-    if (!chapter || chapter.status !== "active") throw new AppError({ statusCode: 400, code: "INVALID_CHAPTER", message: "Chapter must be an active taxonomy chapter." });
-    if (!topic || topic.status !== "active" || topic.chapterId !== chapter.id) throw new AppError({ statusCode: 400, code: "INVALID_TOPIC", message: "Topic must belong to the selected active chapter." });
+    if (input.chapterId && (!chapter || chapter.status !== "active")) throw new AppError({ statusCode: 400, code: "INVALID_CHAPTER", message: "Chapter must be an active taxonomy chapter." });
+    if (input.topicId && (!topic || topic.status !== "active" || (chapter && topic.chapterId !== chapter.id))) throw new AppError({ statusCode: 400, code: "INVALID_TOPIC", message: "Topic must belong to the selected active chapter." });
     if (!difficulty || difficulty.status !== "active") throw new AppError({ statusCode: 400, code: "INVALID_DIFFICULTY", message: "An active difficulty is required." });
     if (!questionType || questionType.status !== "active") throw new AppError({ statusCode: 400, code: "INVALID_QUESTION_TYPE", message: "An active question type is required." });
     if (input.questionType2Id && (!questionType2 || questionType2.status !== "active" || questionType2.id === questionType.id)) throw new AppError({ statusCode: 400, code: "INVALID_SECOND_QUESTION_TYPE", message: "The second question type must be active and different." });
