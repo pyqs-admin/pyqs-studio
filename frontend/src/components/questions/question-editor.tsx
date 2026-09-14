@@ -10,7 +10,7 @@ import { z } from "zod";
 import { Card } from "@/components/ui/card";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { ExplanationWorkspace } from "@/components/questions/explanation-workspace";
-import { getQuestions, getTaxonomy, type QuestionRow, type Taxonomy } from "@/lib/api/projects";
+import { getQuestions, getTaxonomyOptions, type QuestionRow, type Taxonomy } from "@/lib/api/projects";
 import { getMedia, registerExternalImage, uploadMedia, type MediaAsset } from "@/lib/api/explanations";
 import { getCurrentStudioUser } from "@/lib/api/auth";
 import { approveQuestion, requestChanges } from "@/lib/api/review";
@@ -151,7 +151,7 @@ export function QuestionEditor({ projectId, subjectId, details }: { projectId: s
   const [secondaryTerm, setSecondaryTerm] = useState("");
   const [secondaryMenu, setSecondaryMenu] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const taxonomy = useQuery({ queryKey: ["taxonomy"], queryFn: getTaxonomy, staleTime: 300_000 });
+  const taxonomy = useQuery({ queryKey: ["taxonomy", "options"], queryFn: getTaxonomyOptions, staleTime: 300_000 });
   const projectQuestions = useQuery({ queryKey: ["questions", { projectId, workspace: true }], queryFn: () => getQuestions({ projectId, limit: 100 }), staleTime: 30_000 });
   const media = useQuery({ queryKey: ["media"], queryFn: getMedia, staleTime: 300_000 });
   const currentUser = useQuery({ queryKey: ["studio", "current-user"], queryFn: getCurrentStudioUser, staleTime: 300_000 });

@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { createProject, getTaxonomy } from "@/lib/api/projects";
+import { createProject, getTaxonomyOptions } from "@/lib/api/projects";
 
 const schema = z.object({
   name: z.string().trim().min(3, "Enter a project name."),
@@ -24,7 +24,7 @@ type Values = z.infer<typeof schema>;
 export function NewProjectDialog({ variant = "card" }: { variant?: "card" | "button" }) {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
-  const taxonomy = useQuery({ queryKey: ["taxonomy"], queryFn: getTaxonomy, staleTime: 300_000 });
+  const taxonomy = useQuery({ queryKey: ["taxonomy", "options"], queryFn: getTaxonomyOptions, staleTime: 300_000 });
   const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { name: "", examId: "", year: new Date().getFullYear(), session: "" } });
   const mutation = useMutation({
     mutationFn: createProject,

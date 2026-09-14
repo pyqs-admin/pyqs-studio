@@ -8,7 +8,6 @@ import { useEffect, useState } from "react";
 import { useHeaderState } from "@/components/layout/header-context";
 import { Menu, MenuLabel, MenuSeparator } from "@/components/ui/menu";
 import { getCurrentStudioUser } from "@/lib/api/auth";
-import { createClient } from "@/lib/supabase/client";
 
 const initials = (name?: string) =>
   String(name ?? "?")
@@ -29,6 +28,7 @@ export function StudioShell({ children }: Readonly<{ children: React.ReactNode }
 
   const signOut = async () => {
     try {
+      const { createClient } = await import("@/lib/supabase/client");
       await createClient().auth.signOut();
     } catch {
       // Missing runtime configuration must not leave the user stranded.
