@@ -4,10 +4,41 @@ import { AppError } from "@/server/lib/AppError";
 import { taxonomyRepository } from "@/server/repositories/taxonomy.repository";
 import type { CreateChapter, CreateSimple, CreateSubject, CreateTopic, UpdateChapter, UpdateSimple, UpdateSubject, UpdateTopic } from "@/server/schemas/taxonomy.schemas";
 
+const TAXONOMY_CACHE_TTL_MS = 5 * 60 * 1000;
+
+async function loadTaxonomy() {
+  const [subjects, chapters, topics, difficulties, questionTypes, exams] = await Promise.all([
+    taxonomyRepository.listSubjects(), taxonomyRepository.listChapters(), taxonomyRepository.listTopics(), taxonomyRepository.listDifficulties(), taxonomyRepository.listQuestionTypes(), taxonomyRepository.listExams(),
+  ]);
+  return { subjects, chapters, topics, difficulties, questionTypes, exams };
+}
+
+let taxonomyCache: { expiresAt: number; value: ReturnType<typeof loadTaxonomy> } | null = null;
+
 export class TaxonomyService {
+  async getSubject(id: string) {
+    return taxonomyRepository.findSubject(id);
+  }
+  async getChapter(id: string) {
+    return taxonomyRepository.findChapter(id);
+  }
+  async getTopic(id: string) {
+    return taxonomyRepository.findTopic(id);
+  }
   async getTaxonomy() {
+    if (taxonomyCache && taxonomyCache.expiresAt > Date.now()) return taxonomyCache.value;
+    const value = loadTaxonomy();
+    taxonomyCache = { expiresAt: Date.now() + TAXONOMY_CACHE_TTL_MS, value };
+    try {
+      return await value;
+    } catch (error) {
+      taxonomyCache = null;
+      throw error;
+    }
+  }
+  async getTaxonomyOptions() {
     const [subjects, chapters, topics, difficulties, questionTypes, exams] = await Promise.all([
-      taxonomyRepository.listSubjects(), taxonomyRepository.listChapters(), taxonomyRepository.listTopics(), taxonomyRepository.listDifficulties(), taxonomyRepository.listQuestionTypes(), taxonomyRepository.listExams(),
+      taxonomyRepository.listSubjectOptions(), taxonomyRepository.listChapterOptions(), taxonomyRepository.listTopicOptions(), taxonomyRepository.listDifficultyOptions(), taxonomyRepository.listQuestionTypeOptions(), taxonomyRepository.listExamOptions(),
     ]);
     return { subjects, chapters, topics, difficulties, questionTypes, exams };
   }

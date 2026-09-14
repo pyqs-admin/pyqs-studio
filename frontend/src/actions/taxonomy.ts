@@ -25,6 +25,37 @@ export async function getTaxonomy() {
   });
 }
 
+export async function getTaxonomyOptions() {
+  return runAction(async () => {
+    await requireUser();
+    return taxonomyService.getTaxonomyOptions();
+  });
+}
+
+export async function getSubject(subjectId: string) {
+  return runAction(async () => {
+    await requireUser();
+    const params = subjectParamsSchema.parse({ subjectId });
+    return taxonomyService.getSubject(params.subjectId);
+  });
+}
+
+export async function getChapter(chapterId: string) {
+  return runAction(async () => {
+    await requireUser();
+    const params = chapterParamsSchema.parse({ chapterId });
+    return taxonomyService.getChapter(params.chapterId);
+  });
+}
+
+export async function getTopic(topicId: string) {
+  return runAction(async () => {
+    await requireUser();
+    const params = idParamsSchema.parse({ id: topicId });
+    return taxonomyService.getTopic(params.id);
+  });
+}
+
 export async function listSubjects() {
   return runAction(async () => {
     await requireUser();
