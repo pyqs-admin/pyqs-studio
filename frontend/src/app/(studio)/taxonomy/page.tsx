@@ -1,51 +1,11 @@
-"use client";
+import { requireUser } from "@/server/auth/session";
+import { taxonomyService } from "@/server/services/taxonomy.service";
+import { TaxonomyPageClient } from "./taxonomy-browser";
 
-import { ChevronDown, ChevronRight, Layers, Search } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
-import { usePageHeader } from "@/components/layout/header-context";
-import { ContentSkeleton, ErrorState } from "@/components/shared/state-panels";
-import { type Taxonomy, type TaxonomyItem, getTaxonomy } from "@/lib/api/projects";
+export const dynamic = "force-dynamic";
 
-const textValues = (item: TaxonomyItem) => [item.name, item.code, item.slug, ...(item.aliases ?? []), ...(item.includes ?? []), ...(item.excludes ?? []), ...(item.relatedTopics ?? [])].filter(Boolean).join(" ").toLowerCase();
-const list = (values?: string[], className = "") => values?.length ? <ul className={`ixlist ${className}`}>{values.map((value) => <li key={value}>{value.replace(/\s*->\s*/g, " → ")}</li>)}</ul> : <p className="small">—</p>;
-
-function TopicDetail({ topic }: { topic: TaxonomyItem }) {
-  return <tr className="ixdetail"><td colSpan={5}><div className="ixd">
-    {topic.scope && <p className="ixlede">{topic.scope}</p>}
-    <div className="ixcols"><div><span className="eyebrow">Includes</span>{list(topic.includes)}</div><div><span className="eyebrow">Not here — and where it goes</span>{list(topic.excludes, "arrows")}</div></div>
-    {!!topic.relatedTopics?.length && <><span className="eyebrow">Related</span>{list(topic.relatedTopics)}</>}
-    {!!topic.secondarySubjects?.length && <><span className="eyebrow">Also in</span>{list(topic.secondarySubjects)}</>}
-  </div></td></tr>;
+export default async function TaxonomyPage() {
+  await requireUser();
+  const taxonomy = await taxonomyService.getTaxonomyOptions();
+  return <TaxonomyPageClient initialTaxonomy={JSON.parse(JSON.stringify(taxonomy))} />;
 }
-
-function TopicRow({ topic, open, onToggle }: { topic: TaxonomyItem; open: boolean; onToggle: () => void }) {
-  const aliases = topic.aliases ?? [];
-  return <><tr className="ixrow" aria-expanded={open} onClick={onToggle}><td className="mono ixtc">{topic.code}</td><td className="ixtn">{topic.name}{topic.status !== "active" && <span className="tag">{topic.status}</span>}</td><td>{topic.kind && <span className="ixkind">{topic.kind.replaceAll("_", " ")}</span>}</td><td className="ixal">{aliases.slice(0, 3).join(" · ")}{aliases.length > 3 && <span className="ixmore"> +{aliases.length - 3}</span>}</td><td className="ixchev">{open ? <ChevronDown size={15} /> : <ChevronRight size={15} />}</td></tr>{open && <TopicDetail topic={topic} />}</>;
-}
-
-function SubjectRail({ taxonomy, subject, chapter, onSelect }: { taxonomy: Taxonomy; subject: TaxonomyItem | null; chapter: TaxonomyItem | null; onSelect: (subject: TaxonomyItem | null, chapter?: TaxonomyItem) => void }) {
-  return <aside className="ixrail"><div className="ixeyebrow">Subjects</div><button className="ixs" aria-current={!subject} onClick={() => onSelect(null)}><span className="ixcode"><Layers size={13} /></span><span className="ixnm">Overview</span></button>{taxonomy.subjects.map((item) => { const chapters = taxonomy.chapters.filter((entry) => entry.subjectId === item.id); const topics = taxonomy.topics.filter((entry) => chapters.some((entryChapter) => entryChapter.id === entry.chapterId)); return <div key={item.id}><button className="ixs" aria-current={item.id === subject?.id} onClick={() => onSelect(item, chapters[0])}><span className="ixcode">{item.code}</span><span className="ixnm">{item.name}</span><span className="ixn">{topics.length}</span></button>{item.id === subject?.id && <div className="ixchs">{chapters.map((entry) => <button className="ixc" key={entry.id} aria-current={entry.id === chapter?.id} onClick={() => onSelect(item, entry)}><span className="ixcode">{entry.code.split(".").at(-1)}</span><span className="ixnm">{entry.name}</span><span className="ixn">{taxonomy.topics.filter((topic) => topic.chapterId === entry.id).length}</span></button>)}</div>}</div>; })}<p className="ixfoot">Internal reference. Issued to named reviewers; not for distribution.</p></aside>;
-}
-
-function Overview({ taxonomy, onSelect }: { taxonomy: Taxonomy; onSelect: (subject: TaxonomyItem, chapter?: TaxonomyItem) => void }) {
-  const terms = taxonomy.topics.reduce((count, topic) => count + (topic.aliases?.length ?? 0), 0);
-  return <><h1 className="ixh1">Medical QBank Master Index</h1><p className="ixlede">An exam-independent map of undergraduate medicine: <b>Subject → Chapter → Topic</b>. Choose a Topic and the Subject and Chapter follow from it. Exam, year and question source are recorded on the question, never in this hierarchy.</p><div className="ixstats">{[[taxonomy.subjects.length, "Subjects"], [taxonomy.chapters.length, "Chapters"], [taxonomy.topics.length, "Topics"], [terms, "Search terms"]].map(([value, label]) => <div key={label}><b>{value.toLocaleString()}</b><span>{label}</span></div>)}</div><div className="ixcards">{taxonomy.subjects.map((subject) => { const chapters = taxonomy.chapters.filter((chapter) => chapter.subjectId === subject.id); const topics = taxonomy.topics.filter((topic) => chapters.some((chapter) => chapter.id === topic.chapterId)); return <button className="ixcard" key={subject.id} onClick={() => onSelect(subject, chapters[0])}><span className="ixcode">{subject.code}</span><b>{subject.name}</b><span className="small">{topics.length} topics · {chapters.length} chapters</span></button>; })}</div><p className="small ixloaded">Loaded from <span className="mono">taxonomy/subjects/*.json</span>.</p></>;
-}
-
-function SearchResults({ taxonomy, query, onPick }: { taxonomy: Taxonomy; query: string; onPick: (topic: TaxonomyItem) => void }) {
-  const term = query.trim().toLowerCase(); if (!term) return null; const results = taxonomy.topics.filter((topic) => textValues(topic).includes(term)).slice(0, 100);
-  return <div className="ixresults" role="listbox">{results.length ? results.map((topic) => { const chapter = taxonomy.chapters.find((entry) => entry.id === topic.chapterId); const subject = taxonomy.subjects.find((entry) => entry.id === chapter?.subjectId); return <button className="ixhit" key={topic.id} onClick={() => onPick(topic)}><span className="ixhit-top"><b>{topic.name}</b><span className="mono ixhit-code">{topic.code}</span><span className="ixhit-why">matches index</span></span><span className="ixhit-path">{subject?.name} › {chapter?.name}</span>{topic.scope && <span className="ixhit-scope">{topic.scope.slice(0, 110)}{topic.scope.length > 110 ? "…" : ""}</span>}</button>; }) : <p className="small ixnoresults">No topic matches “{query}”. Try a shorter word, an abbreviation, or the code.</p>}</div>;
-}
-
-function IndexBrowser({ taxonomy }: { taxonomy: Taxonomy }) {
-  const [subjectId, setSubjectId] = useState<string | null>(null); const [chapterId, setChapterId] = useState<string | null>(null); const [query, setQuery] = useState(""); const [openTopic, setOpenTopic] = useState<string | null>(null); const searchRef = useRef<HTMLInputElement>(null);
-  const subject = taxonomy.subjects.find((item) => item.id === subjectId) ?? null; const chapters = subject ? taxonomy.chapters.filter((item) => item.subjectId === subject.id) : []; const chapter = chapters.find((item) => item.id === chapterId) ?? chapters[0] ?? null; const topics = chapter ? taxonomy.topics.filter((item) => item.chapterId === chapter.id) : [];
-  const select = (nextSubject: TaxonomyItem | null, nextChapter?: TaxonomyItem) => { setSubjectId(nextSubject?.id ?? null); setChapterId(nextChapter?.id ?? null); setOpenTopic(null); setQuery(""); };
-  useEffect(() => { const handler = (event: KeyboardEvent) => { if (event.key === "/" && !/INPUT|TEXTAREA/.test((document.activeElement as HTMLElement)?.tagName ?? "")) { event.preventDefault(); searchRef.current?.focus(); } }; window.addEventListener("keydown", handler); return () => window.removeEventListener("keydown", handler); }, []);
-  const pickTopic = (topic: TaxonomyItem) => { const nextChapter = taxonomy.chapters.find((item) => item.id === topic.chapterId); const nextSubject = taxonomy.subjects.find((item) => item.id === nextChapter?.subjectId); if (nextSubject && nextChapter) { select(nextSubject, nextChapter); setOpenTopic(topic.code); } };
-  const chapterIndex = chapter ? chapters.findIndex((item) => item.id === chapter.id) : -1;
-  return <div className="ixwrap"><SubjectRail taxonomy={taxonomy} subject={subject} chapter={chapter} onSelect={select} /><main className="ixmain"><div className="ixbar"><label className="ixq"><Search size={18} /><input ref={searchRef} type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Search ${taxonomy.topics.length.toLocaleString()} topics — a name, an alias, an abbreviation (AF, SSI, MI) or a code (SUR.T0042)`} autoComplete="off" spellCheck={false} /><kbd>/</kbd></label><SearchResults taxonomy={taxonomy} query={query} onPick={pickTopic} /></div><div className="ixbody">{subject && chapter ? <><nav className="ixcrumb"><button onClick={() => select(null)}>All subjects</button><span>›</span><button onClick={() => select(subject, chapters[0])}>{subject.name}</button><span>›</span><span className="mono">{chapter.code}</span></nav><h1 className="ixh1">{chapter.name}</h1><p className="ixmeta"><span className="mono">{chapter.code}</span><span>{topics.length} topics</span><span>chapter {chapterIndex + 1} of {chapters.length}</span></p>{chapter.scope && <p className="ixlede">{chapter.scope}</p>}<div className="ixcols"><section className="ixpanel in"><h3>What belongs here</h3>{list(chapter.includes)}</section><section className="ixpanel out"><h3>What does not — and where it goes</h3>{list(chapter.excludes, "arrows")}</section></div>{!!chapter.overlaps?.length && <section className="ixpanel rule"><h3>Boundary rules</h3>{list(chapter.overlaps)}</section>}{!!chapter.referenceSections?.length && <p className="ixrefs"><b>Reference sections</b> {chapter.referenceSections.join(" · ")}</p>}<table className="ixtable"><thead><tr><th>Code</th><th>Canonical topic</th><th>Kind</th><th>Also called</th><th /></tr></thead><tbody>{topics.map((topic) => <TopicRow key={topic.id} topic={topic} open={openTopic === topic.code} onToggle={() => setOpenTopic(openTopic === topic.code ? null : topic.code)} />)}</tbody></table><div className="ixnav">{chapters[chapterIndex - 1] ? <button onClick={() => select(subject, chapters[chapterIndex - 1])}>← {chapters[chapterIndex - 1].name}</button> : <span />}{chapters[chapterIndex + 1] && <button onClick={() => select(subject, chapters[chapterIndex + 1])}>{chapters[chapterIndex + 1].name} →</button>}</div></> : <Overview taxonomy={taxonomy} onSelect={select} />}</div></main></div>;
-}
-
-export default function TaxonomyPage() { usePageHeader([{ label: "Papers", href: "/dashboard" }, { label: "The Index" }]); const taxonomy = useQuery({ queryKey: ["taxonomy"], queryFn: getTaxonomy, staleTime: 5 * 60 * 1000 }); if (taxonomy.isLoading) return <ContentSkeleton rows={8} />; if (taxonomy.isError || !taxonomy.data) return <ErrorState title="The Index could not be loaded" description="Check your Studio access and try again." onRetry={() => void taxonomy.refetch()} />; return <IndexBrowser taxonomy={taxonomy.data} />; }
