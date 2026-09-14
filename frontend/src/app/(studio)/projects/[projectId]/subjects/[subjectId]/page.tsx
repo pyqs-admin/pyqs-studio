@@ -1,16 +1,17 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Plus, Search } from "lucide-react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { usePageHeader } from "@/components/layout/header-context";
 import { ContentSkeleton, EmptyState, ErrorState } from "@/components/shared/state-panels";
 import { StatusBadge } from "@/components/shared/status-badge";
-import { getProject, getQuestions, getTaxonomy } from "@/lib/api/projects";
+import { getProject, getQuestions, getSubject } from "@/lib/api/projects";
+import { questionPageKey, useProjectStore } from "@/lib/stores/project-store";
 
-const pageSize = 30;
+const pageSize = 10;
 const statusOptions = ["DRAFT", "QUESTION_SUBMITTED", "UNDER_REVIEW", "CHANGES_REQUESTED", "APPROVED", "PUBLISHED"];
 
 function SubjectWorkspaceContent() {
@@ -19,23 +20,36 @@ function SubjectWorkspaceContent() {
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const [status, setStatus] = useState(searchParams.get("status") ?? "");
   const [page, setPage] = useState(0);
-  const project = useQuery({ queryKey: ["projects", projectId], queryFn: () => getProject(projectId) });
-  const taxonomy = useQuery({ queryKey: ["taxonomy"], queryFn: getTaxonomy, staleTime: 300_000 });
+  const cachedProject = useProjectStore((state) => state.projectDetails[projectId]);
+  const cachedSubjectName = useProjectStore((state) => state.subjectNames[subjectId]);
+  const cachedQuestionPage = useProjectStore((state) => state.questionPages[questionPageKey(projectId, subjectId, query, status, page)]);
+  const setProjectDetails = useProjectStore((state) => state.setProjectDetails);
+  const setSubjectName = useProjectStore((state) => state.setSubjectName);
+  const setQuestionPage = useProjectStore((state) => state.setQuestionPage);
+  const project = useQuery({ queryKey: ["projects", projectId], queryFn: () => getProject(projectId), initialData: cachedProject });
+  const subject = useQuery({ queryKey: ["taxonomy", "subject", subjectId], queryFn: () => getSubject(subjectId), initialData: cachedSubjectName ? { id: subjectId, name: cachedSubjectName } : undefined, staleTime: 300_000 });
   const questions = useQuery({
     queryKey: ["questions", { projectId, subjectId, query, status, page }],
     queryFn: () => getQuestions({ projectId, subjectId, q: query || undefined, status: status || undefined, limit: pageSize, offset: page * pageSize }),
+    initialData: cachedQuestionPage?.rows,
+    initialDataUpdatedAt: cachedQuestionPage?.fetchedAt,
+    placeholderData: keepPreviousData,
   });
 
-  const subjectName = taxonomy.data?.subjects.find((item) => item.id === subjectId)?.name;
+  useEffect(() => { if (project.data) setProjectDetails(projectId, project.data); }, [project.data, projectId, setProjectDetails]);
+  useEffect(() => { if (subject.data?.name) setSubjectName(subjectId, subject.data.name); }, [subject.data?.name, subjectId, setSubjectName]);
+  useEffect(() => { if (questions.data) setQuestionPage(questionPageKey(projectId, subjectId, query, status, page), questions.data); }, [questions.data, projectId, subjectId, query, status, page, setQuestionPage]);
+
+  const subjectName = subject.data?.name;
   usePageHeader([
     { label: "Projects", href: "/projects" },
     ...(project.data ? [{ label: project.data.project.name, href: `/projects/${projectId}` }] : []),
     ...(subjectName ? [{ label: subjectName }] : []),
   ]);
 
-  if (project.isLoading || taxonomy.isLoading || questions.isLoading) return <ContentSkeleton rows={6} />;
-  if (project.isError || taxonomy.isError || questions.isError || !project.data || !taxonomy.data || !questions.data) {
-    return <ErrorState description="We couldn't load this subject workspace." onRetry={() => { void project.refetch(); void taxonomy.refetch(); void questions.refetch(); }} />;
+  if (project.isLoading || subject.isLoading || questions.isLoading) return <ContentSkeleton rows={6} />;
+  if (project.isError || subject.isError || questions.isError || !project.data || !subject.data || !questions.data) {
+    return <ErrorState description="We couldn't load this subject workspace." onRetry={() => { void project.refetch(); void subject.refetch(); void questions.refetch(); }} />;
   }
 
   return (

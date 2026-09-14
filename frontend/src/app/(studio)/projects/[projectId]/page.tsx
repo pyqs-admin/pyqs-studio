@@ -4,18 +4,23 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useMemo } from "react";
+import { useEffect } from "react";
 import { usePageHeader } from "@/components/layout/header-context";
 import { MemberPicker } from "@/components/projects/member-picker";
 import { ProjectActions } from "@/components/projects/project-actions";
 import { ContentSkeleton, ErrorState } from "@/components/shared/state-panels";
 import { Stat } from "@/components/shared/stat";
 import { StatusBar } from "@/components/shared/status-badge";
-import { getProject, getProjectMembers, getProjectQuestionStats, getTaxonomy } from "@/lib/api/projects";
+import { getProject, getProjectMembers, getProjectQuestionStats, getTaxonomyOptions } from "@/lib/api/projects";
+import { useProjectStore } from "@/lib/stores/project-store";
 
 export default function ProjectPage() {
   const { projectId } = useParams<{ projectId: string }>();
-  const project = useQuery({ queryKey: ["projects", projectId], queryFn: () => getProject(projectId) });
-  const taxonomy = useQuery({ queryKey: ["taxonomy"], queryFn: getTaxonomy, staleTime: 300_000 });
+  const cachedProject = useProjectStore((state) => state.projectDetails[projectId]);
+  const setProjectDetails = useProjectStore((state) => state.setProjectDetails);
+  const project = useQuery({ queryKey: ["projects", projectId], queryFn: () => getProject(projectId), initialData: cachedProject });
+  useEffect(() => { if (project.data) setProjectDetails(projectId, project.data); }, [project.data, projectId, setProjectDetails]);
+  const taxonomy = useQuery({ queryKey: ["taxonomy", "options"], queryFn: getTaxonomyOptions, staleTime: 300_000 });
   const questionStats = useQuery({ queryKey: ["question-stats", projectId], queryFn: () => getProjectQuestionStats(projectId) });
   const members = useQuery({ queryKey: ["projects", projectId, "members"], queryFn: () => getProjectMembers(projectId) });
 

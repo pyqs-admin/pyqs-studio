@@ -7,10 +7,20 @@ import { usePageHeader } from "@/components/layout/header-context";
 import { NewProjectDialog } from "@/components/projects/new-project-dialog";
 import { ContentSkeleton, EmptyState, ErrorState } from "@/components/shared/state-panels";
 import { getProjects } from "@/lib/api/projects";
+import { useProjectStore } from "@/lib/stores/project-store";
+import { useEffect } from "react";
 
 export default function ProjectsPage() {
   usePageHeader([{ label: "Projects" }]);
-  const projects = useQuery({ queryKey: ["projects"], queryFn: getProjects });
+  const cachedProjects = useProjectStore((state) => state.projects);
+  const setProjects = useProjectStore((state) => state.setProjects);
+  const setProjectDetails = useProjectStore((state) => state.setProjectDetails);
+  const projects = useQuery({ queryKey: ["projects"], queryFn: getProjects, initialData: cachedProjects.length ? cachedProjects : undefined });
+  useEffect(() => {
+    if (!projects.data) return;
+    setProjects(projects.data);
+    projects.data.forEach(({ project, exam }) => setProjectDetails(project.id, { project, exam }));
+  }, [projects.data, setProjects, setProjectDetails]);
 
   if (projects.isLoading) return <ContentSkeleton />;
   if (projects.isError || !projects.data) return <ErrorState description="We couldn't load your accessible projects." onRetry={() => projects.refetch()} />;

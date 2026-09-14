@@ -1,9 +1,9 @@
 import { listUsers } from "@/actions/auth";
 import { getPublishReady, publishProject as publishProjectAction, publishQuestion as publishQuestionAction } from "@/actions/publish";
 import { addProjectMember as addProjectMemberAction, createProject as createProjectAction, getProject as getProjectAction, listProjectMembers as listProjectMembersAction, listProjects, updateProject as updateProjectAction } from "@/actions/projects";
-import { getProjectQuestionStats as getProjectQuestionStatsAction, listQuestions } from "@/actions/questions";
+import { getProjectQuestionStats as getProjectQuestionStatsAction, listMyQuestions as listMyQuestionsAction, listQuestions } from "@/actions/questions";
 import { getReviewQueue as getReviewQueueAction } from "@/actions/review";
-import { getTaxonomy as getTaxonomyAction } from "@/actions/taxonomy";
+import { getChapter as getChapterAction, getSubject as getSubjectAction, getTaxonomy as getTaxonomyAction, getTaxonomyOptions as getTaxonomyOptionsAction, getTopic as getTopicAction } from "@/actions/taxonomy";
 import { callAction } from "./client";
 
 export type TaxonomyItem = {
@@ -26,6 +26,7 @@ export type TaxonomyItem = {
   secondarySubjects?: string[];
 };
 export type Taxonomy = { subjects: TaxonomyItem[]; chapters: TaxonomyItem[]; topics: TaxonomyItem[]; difficulties: TaxonomyItem[]; exams: TaxonomyItem[]; questionTypes: TaxonomyItem[] };
+export type TaxonomyOptions = Taxonomy;
 export type Project = { id: string; name: string; examId: string; year: number; session: string | null; status: "active" | "archived"; templateCode: string; targetQuestionCount: number | null; deadline: string | null; projectLeadProfileId: string | null; createdBy: string; createdAt: string; updatedAt: string };
 export type ProjectListItem = { project: Project; exam: TaxonomyItem; memberRole: string | null };
 export type ProjectDetails = { project: Project; exam: TaxonomyItem };
@@ -40,7 +41,12 @@ export const getProjects = () => callAction<ProjectListItem[]>(listProjects());
 export const getProject = (projectId: string) => callAction<ProjectDetails>(getProjectAction(projectId));
 export const getProjectMembers = (projectId: string) => callAction<ProjectMember[]>(listProjectMembersAction(projectId));
 export const getTaxonomy = () => callAction<Taxonomy>(getTaxonomyAction());
+export const getTaxonomyOptions = () => callAction<TaxonomyOptions>(getTaxonomyOptionsAction());
+export const getSubject = (subjectId: string) => callAction<{ id: string; name: string } | null>(getSubjectAction(subjectId));
+export const getChapter = (chapterId: string) => callAction<TaxonomyItem | null>(getChapterAction(chapterId));
+export const getTopic = (topicId: string) => callAction<TaxonomyItem | null>(getTopicAction(topicId));
 export const getQuestions = (params: Record<string, string | number | undefined>) => callAction<QuestionRow[]>(listQuestions(params));
+export const getMyQuestions = () => callAction<QuestionRow[]>(listMyQuestionsAction());
 export const getProjectQuestionStats = (projectId: string) => callAction<ProjectQuestionStat[]>(getProjectQuestionStatsAction(projectId));
 export const getReviewQueue = () => callAction<ReviewQueueItem[]>(getReviewQueueAction());
 export const createProject = (body: { name: string; examId: string; year: number; session?: string }) => callAction<Project>(createProjectAction(body));
