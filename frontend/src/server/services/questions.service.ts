@@ -15,8 +15,15 @@ const SUBMITTABLE_STATUSES = new Set(["DRAFT", "CHANGES_REQUESTED"]);
 
 export class QuestionsService {
   async list(query: QuestionListQuery, session: StudioSession) {
-    if (query.projectId) await projectsService.get(query.projectId, session);
-    const accessibleProjectIds = session.permissions.includes("question.view_all") ? null : (await projectsService.list(session)).map((row) => row.project.id);
+    let accessibleProjectIds: string[] | null;
+    if (query.projectId) {
+      // The project access check already proves access to this project. Avoid
+      // loading every accessible project again for a scoped workspace query.
+      await projectsService.get(query.projectId, session);
+      accessibleProjectIds = [query.projectId];
+    } else {
+      accessibleProjectIds = session.permissions.includes("question.view_all") ? null : (await projectsService.list(session)).map((row) => row.project.id);
+    }
     return questionsRepository.list(query, accessibleProjectIds);
   }
   async projectStats(projectId: string, session: StudioSession) {

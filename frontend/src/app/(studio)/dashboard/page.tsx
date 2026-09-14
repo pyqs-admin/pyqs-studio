@@ -7,13 +7,13 @@ import { usePageHeader } from "@/components/layout/header-context";
 import { ContentSkeleton, ErrorState } from "@/components/shared/state-panels";
 import { Stat } from "@/components/shared/stat";
 import { getCurrentStudioUser } from "@/lib/api/auth";
-import { getProjects, getQuestions, getReviewQueue } from "@/lib/api/projects";
+import { getMyQuestions, getProjects, getReviewQueue } from "@/lib/api/projects";
 
 export default function DashboardPage() {
   usePageHeader([]);
   const user = useQuery({ queryKey: ["studio", "current-user"], queryFn: getCurrentStudioUser });
   const projects = useQuery({ queryKey: ["projects"], queryFn: getProjects });
-  const questions = useQuery({ queryKey: ["questions", "mine"], queryFn: () => getQuestions({ createdBy: user.data?.profileId, limit: 100 }), enabled: Boolean(user.data?.profileId) });
+  const questions = useQuery({ queryKey: ["questions", "mine"], queryFn: getMyQuestions });
   const review = useQuery({ queryKey: ["review", "queue"], queryFn: getReviewQueue });
 
   if (user.isLoading || projects.isLoading) return <ContentSkeleton rows={3} />;

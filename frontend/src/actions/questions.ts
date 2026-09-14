@@ -22,6 +22,13 @@ export async function listQuestions(query: unknown) {
   });
 }
 
+export async function listMyQuestions() {
+  return runAction(async () => {
+    const session = await requireUser();
+    return questionsService.list({ createdBy: session.profileId, limit: 100, offset: 0 }, session);
+  });
+}
+
 export async function getProjectQuestionStats(projectId: string) {
   return runAction(async () => {
     const session = await requireUser();
