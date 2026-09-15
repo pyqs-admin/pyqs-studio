@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { Download } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useMemo } from "react";
@@ -52,6 +53,11 @@ export default function ProjectPage() {
         {project.data.project.session ? ` · ${project.data.project.session}` : ""}
         {project.data.project.status === "archived" && <span className="tag ml-1.5">archived</span>}
       </p>
+      <div className="mb-4 flex justify-end">
+        <a className="btn sm" href={`/api/projects/${projectId}/questions/export`}>
+          <Download className="size-3.5" aria-hidden="true" /> Download all questions
+        </a>
+      </div>
       <div className="strip">
         <Stat value={Object.values(byStatus).reduce((total, count) => total + count, 0)} label="Questions" />
         <Stat value={byStatus.NEEDS_EXPLANATION ?? 0} label="Need explaining" tone="warn" />

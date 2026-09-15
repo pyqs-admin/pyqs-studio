@@ -1,7 +1,7 @@
 "use client";
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { Plus, Search } from "lucide-react";
+import { Download, Plus, Search } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
@@ -79,6 +79,9 @@ function SubjectWorkspaceContent() {
         <Link className="btn pri sm" href={`/projects/${projectId}/subjects/${subjectId}/questions/new`}>
           <Plus className="size-3.5" aria-hidden="true" /> New question
         </Link>
+        <a className="btn sm" href={`/api/projects/${projectId}/questions/export?subjectId=${subjectId}`}>
+          <Download className="size-3.5" aria-hidden="true" /> Download DOCX
+        </a>
       </div>
       {questions.data.length === 0 ? (
         <EmptyState
