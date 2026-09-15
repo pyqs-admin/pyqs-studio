@@ -10,7 +10,7 @@ import { z } from "zod";
 import { Card } from "@/components/ui/card";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { ExplanationWorkspace } from "@/components/questions/explanation-workspace";
-import { getQuestions, getTaxonomyOptions, type QuestionRow, type Taxonomy } from "@/lib/api/projects";
+import { getProjectQuestionStats, getQuestions, getTaxonomyOptions, type ProjectQuestionStat, type Taxonomy } from "@/lib/api/projects";
 import { getMedia, registerExternalImage, uploadMedia, type MediaAsset } from "@/lib/api/explanations";
 import { getCurrentStudioUser } from "@/lib/api/auth";
 import { approveQuestion, requestChanges } from "@/lib/api/review";
@@ -70,10 +70,17 @@ function TaxonomyDropdown({ value, options, placeholder, searchPlaceholder, disa
   </div>;
 }
 
-function QuestionRail({ details, projectId, subjectId, taxonomy, questions }: { details?: QuestionDetails; projectId: string; subjectId: string; taxonomy: Taxonomy; questions: QuestionRow[] }) {
+function QuestionRail({ details, projectId, subjectId, taxonomy, stats }: { details?: QuestionDetails; projectId: string; subjectId: string; taxonomy: Taxonomy; stats: ProjectQuestionStat[] }) {
+  const [railQuery, setRailQuery] = useState("");
+  const [expandedSubjectId, setExpandedSubjectId] = useState<string | null>(subjectId);
+  const railSubjectId = expandedSubjectId ?? subjectId;
+  const projectQuestions = useQuery({ queryKey: ["questions", { projectId, subjectId: railSubjectId, workspace: true }], queryFn: () => getQuestions({ projectId, subjectId: railSubjectId, limit: 100 }), staleTime: 300_000, enabled: Boolean(railSubjectId) });
+  const normalizedRailQuery = railQuery.trim().toLowerCase();
+  const visibleQuestions = (projectQuestions.data ?? []).filter((row) => !normalizedRailQuery || `${row.question.publicQid} ${row.revision.stem}`.toLowerCase().includes(normalizedRailQuery));
+  useEffect(() => setExpandedSubjectId(subjectId), [subjectId]);
   return <aside className="question-rail">
-    <div className="question-rail-tools"><label className="qsearch"><Search className="size-4" aria-hidden="true" /><input placeholder="Find in this project" aria-label="Find in this project" /></label><div className="filters"><button className="fchip" aria-pressed="true">All 1</button>{details && <span className="fchip">{details.question.status.replaceAll("_", " ")} 1</span>}</div></div>
-    <div className="question-tree">{taxonomy.subjects.map((subject) => { const rows = questions.filter((row) => row.revision.subjectId === subject.id); const active = subject.id === subjectId; return <div key={subject.id}><div className={`question-section ${active ? "is-current" : ""}`}><span className="question-caret">›</span><b>{subject.name}</b><span className="question-count">{active ? Math.max(rows.length, 1) : rows.length}</span></div>{active ? <><div className="question-item" aria-current="true"><span className="question-number">{details ? `Q${details.question.questionNumber}` : "New"}</span><span className="question-stem">{details?.revision.stem || "Empty question"}</span><span className="tag">{details ? "Draft" : "New"}</span></div><Link href={`/projects/${projectId}/subjects/${subject.id}/questions/new`} className="question-add"><Plus className="size-3.5" aria-hidden="true" /> Add question here</Link></> : <Link href={`/projects/${projectId}/subjects/${subject.id}/questions/new`} className="question-subject-link">{rows.length ? `${rows.length} question${rows.length === 1 ? "" : "s"}` : "Add question"}<span>›</span></Link>}</div>; })}</div>
+    <div className="question-rail-tools"><label className="qsearch"><Search className="size-4" aria-hidden="true" /><input value={railQuery} onChange={(event) => setRailQuery(event.target.value)} placeholder="Find in this subject" aria-label="Find in this subject" /></label><div className="filters"><span className="fchip">{visibleQuestions.length} loaded</span>{details && <span className="fchip">{details.question.status.replaceAll("_", " ")}</span>}</div></div>
+    <div className="question-tree">{taxonomy.subjects.map((subject) => { const count = stats.filter((row) => row.subjectId === subject.id).reduce((total, row) => total + row.count, 0); const active = subject.id === subjectId; const expanded = expandedSubjectId === subject.id; return <div key={subject.id}><button type="button" className={`question-section question-section-button ${active ? "is-current" : ""}`} aria-expanded={expanded} onClick={() => setExpandedSubjectId(expanded ? null : subject.id)}><span className={`question-caret ${expanded ? "is-expanded" : ""}`}>›</span><b>{subject.name}</b><span className="question-count">{active ? Math.max(count, 1) : count}</span></button>{expanded ? <>{active && <div className="question-item" aria-current="true"><span className="question-number">{details ? `Q${details.question.questionNumber}` : "New"}</span><span className="question-stem">{details?.revision.stem || "Empty question"}</span><span className="tag">{details ? "Draft" : "New"}</span></div>}{visibleQuestions.filter((row) => row.question.id !== details?.question.id).map((row) => <Link href={`/questions/${row.question.id}`} className="question-subject-link" key={row.question.id}><span><b>Q{row.question.questionNumber}</b> · {row.revision.stem.slice(0, 80)}{row.revision.stem.length > 80 ? "…" : ""}</span><span>›</span></Link>)}{projectQuestions.isFetched && visibleQuestions.length === 0 && <p className="question-rail-empty">{normalizedRailQuery ? "No matching questions." : "No questions yet."}</p>}<Link href={`/projects/${projectId}/subjects/${subject.id}/questions/new`} className="question-add"><Plus className="size-3.5" aria-hidden="true" /> Add question here</Link></> : null}</div>; })}</div>
   </aside>;
 }
 
@@ -152,7 +159,7 @@ export function QuestionEditor({ projectId, subjectId, details }: { projectId: s
   const [secondaryMenu, setSecondaryMenu] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const taxonomy = useQuery({ queryKey: ["taxonomy", "options"], queryFn: getTaxonomyOptions, staleTime: 300_000 });
-  const projectQuestions = useQuery({ queryKey: ["questions", { projectId, workspace: true }], queryFn: () => getQuestions({ projectId, limit: 100 }), staleTime: 30_000 });
+  const projectQuestionStats = useQuery({ queryKey: ["question-stats", projectId], queryFn: () => getProjectQuestionStats(projectId), staleTime: 300_000 });
   const media = useQuery({ queryKey: ["media"], queryFn: getMedia, staleTime: 300_000 });
   const currentUser = useQuery({ queryKey: ["studio", "current-user"], queryFn: getCurrentStudioUser, staleTime: 300_000 });
   const form = useForm<FormValues>({ resolver: zodResolver(draftSchema), defaultValues: initialValues(subjectId, details) });
@@ -295,7 +302,7 @@ export function QuestionEditor({ projectId, subjectId, details }: { projectId: s
 
   return (
     <div className="question-workspace">
-      <QuestionRail details={details} projectId={projectId} subjectId={subjectId} taxonomy={taxonomy.data} questions={projectQuestions.data ?? []} />
+      <QuestionRail details={details} projectId={projectId} subjectId={subjectId} taxonomy={taxonomy.data} stats={projectQuestionStats.data ?? []} />
       <form
         onSubmit={form.handleSubmit((body) => (details ? save.mutate(body) : create.mutate(body)))}
         className="question-editor-main min-w-0 space-y-0"

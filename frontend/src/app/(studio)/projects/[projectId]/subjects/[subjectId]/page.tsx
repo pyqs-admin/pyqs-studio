@@ -3,7 +3,7 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Plus, Search } from "lucide-react";
 import Link from "next/link";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { usePageHeader } from "@/components/layout/header-context";
 import { ContentSkeleton, EmptyState, ErrorState } from "@/components/shared/state-panels";
@@ -16,6 +16,7 @@ const statusOptions = ["DRAFT", "QUESTION_SUBMITTED", "UNDER_REVIEW", "CHANGES_R
 
 function SubjectWorkspaceContent() {
   const { projectId, subjectId } = useParams<{ projectId: string; subjectId: string }>();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const [status, setStatus] = useState(searchParams.get("status") ?? "");
@@ -39,6 +40,7 @@ function SubjectWorkspaceContent() {
   useEffect(() => { if (project.data) setProjectDetails(projectId, project.data); }, [project.data, projectId, setProjectDetails]);
   useEffect(() => { if (subject.data?.name) setSubjectName(subjectId, subject.data.name); }, [subject.data?.name, subjectId, setSubjectName]);
   useEffect(() => { if (questions.data) setQuestionPage(questionPageKey(projectId, subjectId, query, status, page), questions.data); }, [questions.data, projectId, subjectId, query, status, page, setQuestionPage]);
+  useEffect(() => { void router.prefetch(`/projects/${projectId}/subjects/${subjectId}/questions/new`); }, [projectId, subjectId, router]);
 
   const subjectName = subject.data?.name;
   usePageHeader([
