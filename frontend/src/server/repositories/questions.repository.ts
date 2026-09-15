@@ -1,7 +1,7 @@
 import { and, asc, count, desc, eq, ilike, inArray, max, or } from "drizzle-orm";
 
 import { db } from "@/server/db/client";
-import { studioAuditLog, studioProfile, studioProject, studioQuestion, studioQuestionAssignment, studioQuestionContributor, studioQuestionOption, studioQuestionRevision, studioQuestionRevisionType, studioQuestionSecondaryTopic } from "@/server/db/schema";
+import { studioAuditLog, studioExplanationBlock, studioMediaAsset, studioProfile, studioProject, studioQuestion, studioQuestionAssignment, studioQuestionContributor, studioQuestionOption, studioQuestionRevision, studioQuestionRevisionType, studioQuestionSecondaryTopic, studioReference } from "@/server/db/schema";
 import type { QuestionDraftInput, QuestionListQuery } from "@/server/schemas/questions.schemas";
 
 export class QuestionsRepository {
@@ -88,6 +88,15 @@ export class QuestionsRepository {
     if (!revision) return null;
     const [options, questionTypes, secondaryTopics] = await Promise.all([db.select().from(studioQuestionOption).where(eq(studioQuestionOption.revisionId, revision.id)), db.select().from(studioQuestionRevisionType).where(eq(studioQuestionRevisionType.revisionId, revision.id)), db.select().from(studioQuestionSecondaryTopic).where(eq(studioQuestionSecondaryTopic.revisionId, revision.id)).orderBy(asc(studioQuestionSecondaryTopic.position))]);
     return { question, revision, options, questionTypes, secondaryTopics };
+  }
+  async exportDetails(questionId: string) {
+    const details = await this.details(questionId);
+    if (!details) return null;
+    const [blockRows, references] = await Promise.all([
+      db.select({ block: studioExplanationBlock, mediaAsset: studioMediaAsset }).from(studioExplanationBlock).leftJoin(studioMediaAsset, eq(studioExplanationBlock.mediaAssetId, studioMediaAsset.id)).where(eq(studioExplanationBlock.revisionId, details.revision.id)).orderBy(asc(studioExplanationBlock.position)),
+      db.select().from(studioReference).where(eq(studioReference.revisionId, details.revision.id)).orderBy(asc(studioReference.position)),
+    ]);
+    return { ...details, explanationBlocks: blockRows.map(({ block, mediaAsset }) => ({ ...block, mediaAsset })), references };
   }
   async createRevision(questionId: string, profileId: string) {
     return db.transaction(async (tx) => {
