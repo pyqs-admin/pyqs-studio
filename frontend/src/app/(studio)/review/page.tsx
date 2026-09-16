@@ -26,6 +26,7 @@ export default function ReviewQueuePage() {
             <tr>
               <th>Question</th>
               <th>Review state</th>
+              <th>Report</th>
               <th>Medical review</th>
               <th><span className="sr-only">Open</span></th>
             </tr>
@@ -38,9 +39,8 @@ export default function ReviewQueuePage() {
                   <p className="mt-0.5">{item.revision.stem}</p>
                 </td>
                 <td><StatusBadge status={item.question.status} /></td>
-                <td>
-                  {item.revision.requiresMedicalReview === "yes" ? <span className="tag warn">Required</span> : <span className="tag">Not required</span>}
-                </td>
+                <td className="max-w-sm">{item.report ? <div><span className="tag warn">{item.report.reason.replaceAll("_", " ")}</span><p className="mt-1 text-xs text-[var(--pq-ink-2)]">{item.report.description || "No additional note provided."}</p><p className="mt-1 text-[11px] text-[var(--pq-ink-3)]">Reported by {item.report.profileName || item.report.profileEmail}</p></div> : <span className="tag">No report</span>}</td>
+                <td>{item.revision.requiresMedicalReview === "yes" ? <span className="tag warn">Required</span> : <span className="tag">Not required</span>}</td>
                 <td className="text-right">
                   <Link className="btn sm" href={`/review/${item.question.id}?queue=${item.item.queueId}`}>Review</Link>
                 </td>

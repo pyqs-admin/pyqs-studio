@@ -1,7 +1,7 @@
 import { addComment as addCommentAction, approveQuestion as approveQuestionAction, getComments as getCommentsAction, getReviewItem as getReviewItemAction, getReviewQueue as getReviewQueueAction, requestChanges as requestChangesAction, skipQueueItem as skipQueueItemAction } from "@/actions/review";
 import { callAction } from "./client";
 
-export type QueueItem = { item: { id: string; queueId: string; status: string }; question: { id: string; publicQid: string; status: string }; revision: { id: string; stem: string; requiresMedicalReview: "yes" | "no" }; previousItemId: string | null; nextItemId: string | null };
+export type QueueItem = { item: { id: string; queueId: string; status: string }; question: { id: string; publicQid: string; status: string }; revision: { id: string; stem: string; requiresMedicalReview: "yes" | "no" }; report: { reason: string; description: string | null; profileName: string | null; profileEmail: string; status: string } | null; previousItemId: string | null; nextItemId: string | null };
 export type Comment = { comment: { id: string; body: string; createdAt: string; revisionId: string | null }; author: { id: string; displayName: string; email: string } };
 
 export const getReviewQueue = () => callAction<{ queue: { id: string }; items: QueueItem[] }>(getReviewQueueAction());
