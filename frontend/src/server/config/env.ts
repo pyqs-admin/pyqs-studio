@@ -17,6 +17,8 @@ const envSchema = z
     STUDIO_MEDIA_BUCKET: z.string().trim().min(1).default("studio-media"),
     PYQS_PUBLISHING_WEBHOOK_URL: z.string().url().optional(),
     PYQS_PUBLISHING_WEBHOOK_SECRET: z.string().trim().min(32).optional(),
+    PYQS_REPORTS_API_URL: z.string().url().optional(),
+    PYQS_REPORTS_API_KEY: z.string().trim().min(32).optional(),
   })
   .superRefine((value, context) => {
     const hasUrl = value.PYQS_PUBLISHING_WEBHOOK_URL !== undefined;
@@ -28,6 +30,9 @@ const envSchema = z
         message: "PYQS_PUBLISHING_WEBHOOK_URL and PYQS_PUBLISHING_WEBHOOK_SECRET must be configured together.",
       });
     }
+    const hasReportsUrl = value.PYQS_REPORTS_API_URL !== undefined;
+    const hasReportsKey = value.PYQS_REPORTS_API_KEY !== undefined;
+    if (hasReportsUrl !== hasReportsKey) context.addIssue({ code: z.ZodIssueCode.custom, message: "PYQS_REPORTS_API_URL and PYQS_REPORTS_API_KEY must be configured together." });
   });
 
 const parsedEnv = envSchema.safeParse(process.env);

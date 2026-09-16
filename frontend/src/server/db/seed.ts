@@ -35,7 +35,7 @@ const questionTypes = [
   "Named Tests",
   "Treatment Protocol",
 ];
-const permissions = ["project.create", "project.view_all", "project.manage_all", "project.manage_members", "question.create", "question.edit", "question.view_all", "question.review", "question.publish", "review.assign", "review.view_all", "medical.review", "explanation.edit", "media.view", "media.upload", "media.edit", "media.delete", "taxonomy.manage", "audit.view_all", "users.manage"];
+const permissions = ["project.create", "project.view_all", "project.manage_all", "project.manage_members", "question.create", "question.edit", "question.view_all", "question.review", "question.publish", "question.report.view", "question.report.manage", "review.assign", "review.view_all", "medical.review", "explanation.edit", "media.view", "media.upload", "media.edit", "media.delete", "taxonomy.manage", "audit.view_all", "users.manage"];
 const roles: Record<string, string[]> = { admin: permissions, tutor: ["project.create", "question.create", "question.edit", "explanation.edit", "media.view", "media.upload"], reviewer: ["question.review", "media.view"], medical_reviewer: ["question.review", "medical.review", "media.view"], explanation_editor: ["explanation.edit", "media.view", "media.upload"] };
 const code = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
 

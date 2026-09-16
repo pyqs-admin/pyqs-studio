@@ -49,3 +49,6 @@ Only `NEXT_PUBLIC_*` values reach the browser. Service-role and webhook secrets 
 2. Verify sign-in, inactive-access handling, sign-out, project/question creation, explanation upload, review decisions, and publishing in staging.
 3. Confirm keyboard navigation, visible focus, small-screen tables, and loading/error/empty states on every primary route.
 4. Configure client/server error monitoring in the deployment platform; the application route error boundary preserves a recoverable fallback for unexpected route failures.
+## Question reports integration
+
+Set `PYQS_REPORTS_API_URL` to the main PYQS backend base URL and set `PYQS_REPORTS_API_KEY` to the same 32+ character secret configured as `STUDIO_REPORTS_API_KEY` in the main backend. Run the Studio seed once after deploying the permissions changes so the `question.report.view` and `question.report.manage` permissions are available to roles.

@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { BookOpen, ClipboardCheck, FolderKanban, LayoutDashboard, LogOut, Menu as MenuIcon, Moon, Search, Send, ShieldCheck, Sun, Users, X } from "lucide-react";
+import { AlertTriangle, BookOpen, ClipboardCheck, FolderKanban, LayoutDashboard, LogOut, Menu as MenuIcon, Moon, Search, Send, ShieldCheck, Sun, Users, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -39,11 +39,13 @@ export function StudioShell({ children }: Readonly<{ children: React.ReactNode }
   };
 
   const canManageUsers = Boolean(user.data?.permissions.includes("users.manage"));
+  const canViewReports = Boolean(user.data?.permissions.includes("question.report.view"));
   const navigation = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/projects", label: "Projects", icon: FolderKanban },
     { href: "/questions", label: "Questions", icon: Search },
     { href: "/review", label: "Review", icon: ClipboardCheck },
+    ...(canViewReports ? [{ href: "/reports", label: "Reports", icon: AlertTriangle }] : []),
     { href: "/publish", label: "Publishing", icon: Send },
     { href: "/taxonomy", label: "Taxonomy index", icon: BookOpen },
     ...(canManageUsers ? [{ href: "/users", label: "Users", icon: Users }] : []),
